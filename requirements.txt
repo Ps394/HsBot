@@ -1,0 +1,8 @@
+# Core dependencies
+discord.py
+aiosqlite
+
+# Optional: Resource monitoring (psutil)
+# Windows: pip install psutil
+# MSYS2: pacman -S mingw-w64-ucrt-x86_64-python-psutil
+psutil
