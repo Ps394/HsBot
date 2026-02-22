@@ -11,7 +11,6 @@ from . import commands
 from .. import services
 from ..emojis import Emojis
 
-
 logger = logging.getLogger(__name__)
 
 try:
@@ -264,7 +263,7 @@ class Client(DiscordClient):
             reg_roles = await self.services.wz.roles.get(guild=guild)
             if not reg_roles or before.id not in [r.role.id for r in reg_roles]:
                 return
-            overviews : Overviews.Instances = await self.overview_manager.get_instances(guild=guild)
+            overviews : overviews.Instances = await self.overview_manager.get_instances(guild=guild)
 
             if overviews:
                 for overview in overviews:
@@ -296,7 +295,7 @@ class Client(DiscordClient):
         
             asyncio.gather(*tasks)
 
-            overviews : Overviews.Instances = await self.overview_manager.get_instances(guild=guild)
+            overviews : overviews.Instances = await self.overview_manager.get_instances(guild=guild)
             if overviews:
                 for overview in overviews:
                     await overview.sync()
@@ -316,7 +315,7 @@ class Client(DiscordClient):
             registration : services.wz.RegistrationsRecord = await self.services.wz.registrations.get(guild=guild, member=member.id)
             if registration:
                 await self.services.wz.registrations.remove(guild=guild, member=member.id)
-                overviews : Overviews.Instances = await self.overview_manager.get_instances(guild=guild)
+                overviews : overviews.Instances = await self.overview_manager.get_instances(guild=guild)
                 if overviews:
                     for overview in overviews:
                         await overview.sync()
@@ -339,7 +338,7 @@ class Client(DiscordClient):
             if not registration:
                 return
             else:
-                overviews : Overviews.Instances = await self.overview_manager.get_instances(guild=guild)
+                overviews : overviews.Instances = await self.overview_manager.get_instances(guild=guild)
                 if overviews:
                     for overview in overviews:
                         await overview.sync()
