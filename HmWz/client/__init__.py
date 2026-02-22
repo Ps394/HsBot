@@ -185,12 +185,17 @@ class Client(DiscordClient):
         Entfernt alle registrierten Befehle, sowohl global als auch für alle Gilden.
         """
         try:
-            self.guilds
+            
+            logger.info("Clearing global commands...")
             self.tree.clear_commands(guild=None) 
+            await asyncio.sleep(1)
+            
+            logger.info("Clearing guild-specific commands...")
             for guild in self.guilds:
                 logger.info(f"{guild.name} (ID: {guild.id}) - Clearing commands...")
                 self.tree.clear_commands(guild=guild)
             await self.tree.sync()
+            await asyncio.sleep(1)
             logger.info("All commands cleared successfully.")
         except Exception as e:
             logger.exception(f"Failed to clear commands: {e}")

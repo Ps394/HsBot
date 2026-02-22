@@ -55,6 +55,7 @@ class WzRoles(Base):
 
     def __init__(self, database: Database):
         self.database = database
+        self.logger = logging.getLogger(__name__)
 
     async def count(self, *, guild: Guild, permanent: Optional[bool] = None, roles: Ids = None) -> int:
         """
@@ -171,7 +172,7 @@ class WzRoles(Base):
                 f"INSERT OR REPLACE INTO {self.table_name} (Guild, Role, Permanent, Score) VALUES (?, ?, ?, ?)",
                 (guild.id, role, int(permanent), score)
             )
-            self.logger.debug(f"{self.log_prefix(guild)} Added WZ registration role {role}.")
+            self.logger.info(f"{self.log_prefix(guild)} Added WZ registration role {role}.")
             return True
         except Exception as e:
             self.logger.exception(f"{self.log_prefix(guild)} Failed to add WZ registration role {role}: {e}")
@@ -207,7 +208,7 @@ class WzRoles(Base):
             else:
                 target = "all roles"
             await self.database.execute(query, tuple(params))
-            self.logger.debug(f"{self.log_prefix(guild)} Removed WZ registration role {target}.")
+            self.logger.info(f"{self.log_prefix(guild)} Removed WZ registration role {target}.")
             return True
         except Exception as e:
             self.logger.exception(f"{self.log_prefix(guild)} Failed to remove WZ registration role {target}: {e}")
