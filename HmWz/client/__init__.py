@@ -188,6 +188,7 @@ class Client(DiscordClient):
             self.guilds
             self.tree.clear_commands(guild=None) 
             for guild in self.guilds:
+                logger.info(f"{guild.name} (ID: {guild.id}) - Clearing commands...")
                 self.tree.clear_commands(guild=guild)
             await self.tree.sync()
             logger.info("All commands cleared successfully.")
@@ -371,17 +372,17 @@ class Client(DiscordClient):
         send = interaction.followup.send if interaction.response.is_done() else interaction.response.send_message
         try:
             if isinstance(error, app_commands.MissingPermissions):
-                message = f"{Emojis.error.value} Du hast nicht die erforderlichen Berechtigungen, um diesen Befehl auszuführen."
+                message = f"{Emojis.ERROR.value} Du hast nicht die erforderlichen Berechtigungen, um diesen Befehl auszuführen."
                 logger.warning(f"{log_context} - User missing permissions: {error}")
             elif isinstance(error, app_commands.BotMissingPermissions):
-                message = f"{Emojis.error.value} Mir fehlen die erforderlichen Berechtigungen, um diesen Befehl auszuführen."
+                message = f"{Emojis.ERROR.value} Mir fehlen die erforderlichen Berechtigungen, um diesen Befehl auszuführen."
                 logger.error(f"{log_context} - Bot missing permissions: {error}")
             elif isinstance(error, app_commands.CommandOnCooldown):
-                message = f"{Emojis.error.value} Warte {error.retry_after:.1f} Sekunden, bevor du diesen Befehl erneut verwenden kannst."
+                message = f"{Emojis.ERROR.value} Warte {error.retry_after:.1f} Sekunden, bevor du diesen Befehl erneut verwenden kannst."
                 logger.info(f"{log_context} - Command on cooldown: {error}")
             
             else:
-                message = f"{Emojis.error.value} Ein unerwarteter Fehler ist aufgetreten: {error}"
+                message = f"{Emojis.ERROR.value} Ein unerwarteter Fehler ist aufgetreten: {error}"
                 logger.exception(f"{log_context} - Unexpected error: {error}")
             await send(message, ephemeral=True)
         except Exception as e:
