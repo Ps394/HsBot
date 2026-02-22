@@ -39,7 +39,9 @@ async def configure(interaction: Interaction, channel: TextChannel, role: Option
         success_channel = await services.wz.registration.setup_channel(guild=interaction.guild, channel=channel.id)
 
         if role is None and await services.wz.roles.count(guild=interaction.guild) == 0:
-            raise ValueError(LOGS["NO_CONFIGURED_ROLE"])
+            logger.error(LOGS["NO_CONFIGURED_ROLE"])
+            await interaction.followup.send(MESSAGES["ERROR_NO_CONFIGURED_ROLE"], ephemeral=True)
+            return
         
         if role:
             if role >= interaction.guild.me.top_role:
