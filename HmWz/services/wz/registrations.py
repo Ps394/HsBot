@@ -2,6 +2,7 @@ from __future__ import annotations
 import datetime
 import asyncio
 from dataclasses import dataclass
+import logging
 from typing import Optional, Union, Tuple
 from discord import Guild
 
@@ -18,6 +19,7 @@ class WzRegistrations(Base):
     def __init__(self, database: Database):
         super().__init__(database)
         self.roles_service = WzRoles(database)
+        self.logger = logging.getLogger(__name__)
 
     @property
     def table(self) -> str:
@@ -55,11 +57,7 @@ class WzRegistrations(Base):
     """
     Der Datentyp für die WZ-Registrierungsinformationen einer Guild. Er kann entweder ein einzelner Record oder ein Tuple von Records sein, oder None, wenn keine Registrierungen vorhanden sind.
     """
-
-    def __init__(self, database: Database):
-        self.database = database
-        self.roles_service = WzRoles(database)
-
+    
     async def count(self, *, guild: Guild, role: Optional[Id]=None, roles: Optional[Ids]=None) -> int:
         """
         Zählt die Anzahl der WZ-Registrierungen in einem Guild, optional gefiltert nach einer bestimmten Rolle oder einer Liste von Rollen.

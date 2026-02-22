@@ -4,8 +4,8 @@ import os
 
 from typing import Optional
 from discord import app_commands
-from . import Overviews
-from . import Commands
+from . import overviews
+from . import commands
 from .. import services
 from ..emojis import Emojis
 
@@ -21,6 +21,7 @@ except ImportError:
     logger.warning("psutil not available - resource monitoring disabled")  
 
 class Client(DiscordClient):
+    registered_commands : int = 0 
     def __init__(self, *, intents: Intents = Intents.default(), global_command_sync: Optional[bool]=True, **options):
         """
         Initialisiert den Client mit den erforderlichen Intents und Optionen.
@@ -35,7 +36,7 @@ class Client(DiscordClient):
         super().__init__(intents=intents, **options, logger=logger)
         self.services = services.Services()
         self.tree = app_commands.CommandTree(self)
-        self.overview_manager = Overviews.Manager(self)
+        self.overview_manager = overviews.Manager(self)
         self.global_command_sync = global_command_sync
 
     async def update_loop(self, interval: int = 900):
@@ -87,29 +88,53 @@ class Client(DiscordClient):
             
             await asyncio.sleep(interval)
 
+    def add_command(self, command: callable):
+        """
+        Fügt einen Befehl zur Befehlsstruktur hinzu.
+
+        :param command: Der Befehl, der hinzugefügt werden soll
+        :type command: callable
+        """
+        if isinstance(command, type) and issubclass(command, app_commands.Group):
+            for subcommand in command.commands:
+                if isinstance(subcommand, app_commands.Command):
+                    logger.debug(f"Registered subcommand: {subcommand.name} in group {command.name}")
+                    self.registered_commands += 1
+                if isinstance(subcommand, app_commands.Group):
+                    logger.debug(f"Registered subcommand group: {subcommand.name} in group {command.name} with {len(subcommand.commands)} subcommands")
+                    self.registered_commands += len(subcommand.commands)
+        else:
+            logger.debug(f"Registered command: {getattr(command, 'name', command)}")
+            self.registered_commands += 1
+        self.tree.add_command(command)
+
     async def register_commands(self):
         """
         Registriert die Befehle aus dem Commands-Modul.
         """
         logger.info("Registering commands...")
 
-        registered_count = 0
-        
+        self.add_command(commands.wz.WzGroup(self))
+
+        """
+        [Deprecated] Registrierung von Befehlen aus dem Commands.REGISTRY - da es zu Problemen beim Synchronisieren der Befehle kam, wenn sie direkt in der REGISTRY registriert wurden, werden die Befehle jetzt direkt im Client hinzugefügt.
+
         for command in Commands.REGISTRY:
             try:
                 if isinstance(command, type) and issubclass(command, app_commands.Group):
                     instance = command(self)
-                    self.tree.add_command(instance)
+                
+                    #self.tree.add_command(instance)
                     for subcommand in instance.commands:
                         if isinstance(subcommand, app_commands.Command):
                             logger.debug(f"Registered subcommand: {subcommand.name} in group {instance.name}")
-                            registered_count += 1
+                            self.registered_commands += 1
                         if isinstance(subcommand, app_commands.Group):
                             logger.debug(f"Registered subcommand group: {subcommand.name} in group {instance.name} with {len(subcommand.commands)} subcommands")
-                            registered_count += len(subcommand.commands)       
+                            self.registered_commands += len(subcommand.commands)       
                 else:
-                    self.tree.add_command(command)
-                    registered_count += 1
+                    #self.tree.add_command(command)
+                    self.registered_commands += 1
                     logger.debug(f"Registered command: {getattr(command, 'name', command)}")
 
             except app_commands.CommandAlreadyRegistered:
@@ -119,6 +144,8 @@ class Client(DiscordClient):
                     f"Failed to register command {getattr(command, 'name', command)} "
                     f"({type(command).__name__}): {e}"
                 )
+       
+        """
         @self.tree.error
         async def tree_on_error(interaction: Interaction, error: app_commands.AppCommandError):
             """
@@ -129,13 +156,12 @@ class Client(DiscordClient):
             except Exception:
                 logger.exception(f"Error while handling app command error: {error}")
 
-        logger.info(f"Total commands registered: {registered_count}")
+        logger.info(f"Total commands registered: {self.registered_commands}")
 
     async def sync_commands_global(self):
         """Synchronisiert die globalen Befehle, wenn global_command_sync aktiviert ist."""
         if self.global_command_sync == True:
             try:
-                self.tree.clear_commands(guild=None)
                 await self.tree.sync()
                 logger.info("Global commands synced successfully.")
             except Exception as e:
@@ -148,12 +174,25 @@ class Client(DiscordClient):
         if self.global_command_sync == False:
             for guild in self.guilds:
                 try:
-                    self.tree.clear_commands(guild=guild)
                     self.tree.copy_global_to(guild=guild)
                     await self.tree.sync(guild=guild)
                     logger.info(f"{guild.name} (ID: {guild.id}) - Commands synced successfully.")
                 except Exception as e:
                     logger.exception(f"{guild.name} (ID: {guild.id}) - Failed to sync commands: {e}")
+
+    async def clear_commands(self):
+        """
+        Entfernt alle registrierten Befehle, sowohl global als auch für alle Gilden.
+        """
+        try:
+            self.guilds
+            self.tree.clear_commands(guild=None) 
+            for guild in self.guilds:
+                self.tree.clear_commands(guild=guild)
+            await self.tree.sync()
+            logger.info("All commands cleared successfully.")
+        except Exception as e:
+            logger.exception(f"Failed to clear commands: {e}")
 
     async def setup_hook(self):
         """
@@ -161,11 +200,12 @@ class Client(DiscordClient):
         """
         await self.services.setup()
 
+        
+        await self.clear_commands()
+
         await self.register_commands()
-        await self.sync_commands_global()
 
         asyncio.create_task(self.resource_monitor_loop())
-        logger.info("Resource monitoring started.")
 
         return await super().setup_hook()
 
@@ -180,6 +220,7 @@ class Client(DiscordClient):
             await self.services.servers.add(guild=guild)
 
         await self.sync_commands_guilds()
+        await self.sync_commands_global()
 
         await self.overview_manager.startup()
         logger.debug("Overview manager startup complete.")

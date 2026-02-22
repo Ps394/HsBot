@@ -2,7 +2,11 @@ import sys
 import logging
 from HmWz import setup_logging, Client, Intents, Token
 
-setup_logging(log_file="bot.log", level=logging.INFO)
+setup_logging(log_file="bot.log", level=logging.DEBUG)
+
+logging.getLogger("discord").setLevel(logging.INFO)
+logging.getLogger("asyncio").setLevel(logging.INFO)
+logging.getLogger("aiosqlite").setLevel(logging.INFO)
 
 logger = logging.getLogger("Bot")
 
@@ -18,7 +22,8 @@ intents.guilds = True
 intents.members = True
 intents.message_content = True
 
-bot = Client(intents=intents, global_command_sync=True)
-logger.info("Starting bot...")
-bot.run(TOKEN)
-logger.info("Bot stopped...")
+if __name__ == "__main__":
+    bot = Client(intents=intents, global_command_sync=False)
+    logger.info("Starting bot...")
+    bot.run(TOKEN)
+    logger.info("Bot stopped...")

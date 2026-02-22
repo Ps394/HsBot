@@ -2,7 +2,7 @@ import logging
 from discord import app_commands, Interaction, HTTPException, Forbidden, NotFound
 from ......emojis import Emojis
 from ......services import Services
-from .....Overviews import Manager
+from .....overviews import Manager
 from discord.app_commands import checks
 
 logger = logging.getLogger(__name__)
@@ -31,11 +31,11 @@ async def remove_autocomplete(interaction: Interaction, current: str) -> tuple[a
 async def remove(interaction: Interaction, role: str):
     MIN_ROLES = 1
     MESSAGES = {
-        "ERROR": f"{Emojis.error.value} Fehler beim Entfernen der Rolle aus der WZ-Registrierung.",
-        "UNKNOWN_ROLE": f"{Emojis.warning.value} Unbekannte Rolle. Bitte wähle eine Rolle aus der Autovervollständigung aus.",
-        "MIN_ROLES": f"{Emojis.warning.value} Es muss mindestens eine Rolle für die WZ-Registrierung festgelegt sein.",
-        "SUCCESS": f"{Emojis.success.value} Rolle {{role_name}} wurde aus der WZ-Registrierung entfernt.",
-        "UNEXPECTED": f"{Emojis.error.value} Unerwarteter Fehler beim Entfernen der Rolle aus der WZ-Registrierung."
+        "ERROR": f"{Emojis.ERROR.value} Fehler beim Entfernen der Rolle aus der WZ-Registrierung.",
+        "UNKNOWN_ROLE": f"{Emojis.WARNING.value} Unbekannte Rolle. Bitte wähle eine Rolle aus der Autovervollständigung aus.",
+        "MIN_ROLES": f"{Emojis.WARNING.value} Es muss mindestens eine Rolle für die WZ-Registrierung festgelegt sein.",
+        "SUCCESS": f"{Emojis.SUCCESS.value} Rolle {{role_name}} wurde aus der WZ-Registrierung entfernt.",
+        "UNEXPECTED": f"{Emojis.ERROR.value} Unerwarteter Fehler beim Entfernen der Rolle aus der WZ-Registrierung."
     }
     log_context = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Setup Role Remove : "
     LOGS = {

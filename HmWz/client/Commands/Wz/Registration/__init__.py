@@ -1,5 +1,5 @@
 from discord.app_commands import Group, checks
-from . import Reset, Csv
+from . import reset, csv
 
 
 __all__ = ["RegistrationGroup"]
@@ -11,5 +11,5 @@ class RegistrationGroup(Group):
             description="Befehle für die WZ-Registrierung"
         )
         
-        self.add_command(Reset.reset)
-        self.add_command(Csv.csv)
+        self.add_command(reset.reset)
+        self.add_command(csv.csv)

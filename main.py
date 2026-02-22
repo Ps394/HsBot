@@ -1,17 +1,24 @@
-
+import sys
 import logging
-from HmWz import setup_logging
-
-
-logger = logging.getLogger("Main")
+from HmWz import setup_logging, Client, Intents, Token
 
 setup_logging(log_file="bot.log", level=logging.INFO)
 
-logger.debug("This is a debug message.")
-logger.info("This is an info message.")
-logger.warning("This is a warning message.")
-logger.error("This is an error message.")
-try:
-    1 / 0
-except ZeroDivisionError:
-    logger.critical("An exception occurred", exc_info=True)
+logger = logging.getLogger("Bot")
+
+TOKEN = Token().get()
+
+if not TOKEN:
+    logger.error("No bot token found!")
+    logger.error("Please set WZ_BOT_TOKEN environment variable or run install script to configure token.")
+    sys.exit(1)
+
+intents = Intents.default()
+intents.guilds = True
+intents.members = True
+intents.message_content = True
+
+bot = Client(intents=intents, global_command_sync=True)
+logger.info("Starting bot...")
+bot.run(TOKEN)
+logger.info("Bot stopped...")

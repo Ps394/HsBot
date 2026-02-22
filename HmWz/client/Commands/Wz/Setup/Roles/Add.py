@@ -4,7 +4,7 @@ from discord import app_commands, Interaction, Role, HTTPException, Forbidden, N
 from discord.app_commands import checks
 from ......emojis import Emojis
 from ......services import Services
-from .....Overviews import Manager
+from .....overviews import Manager
 
 logger = logging.getLogger(__name__)
 
@@ -17,9 +17,9 @@ MAX_ROLES = 4
 async def add(interaction: Interaction, role: Role, permanent: Optional[bool] = False):
     MAX_ROLES = 4
     MESSAGES = {
-        "ERROR": f"{Emojis.error.value} Fehler beim Hinzufügen der Rolle zur WZ-Registrierung.",
-        "MAX_ROLES": f"{Emojis.warning.value} Es können maximal {MAX_ROLES} Rollen für die WZ-Registrierung festgelegt werden.",
-        "SUCCESS": f"{Emojis.success.value} Rolle {{role_name}} wurde zur WZ-Registrierung hinzugefügt."
+        "ERROR": f"{Emojis.ERROR.value} Fehler beim Hinzufügen der Rolle zur WZ-Registrierung.",
+        "MAX_ROLES": f"{Emojis.WARNING.value} Es können maximal {MAX_ROLES} Rollen für die WZ-Registrierung festgelegt werden.",
+        "SUCCESS": f"{Emojis.SUCCESS.value} Rolle {{role_name}} wurde zur WZ-Registrierung hinzugefügt."
     }
     LOG_CONTEXT = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Setup Role Add : "
     LOGS = {

@@ -5,7 +5,7 @@ from discord import app_commands, Interaction, TextChannel, Role, HTTPException,
 from discord.app_commands import checks
 from .....emojis import Emojis
 from .....services import Services
-from ....Overviews import Manager
+from ....overviews import Manager
 
 logger = logging.getLogger(__name__)        
 
@@ -15,10 +15,10 @@ logger = logging.getLogger(__name__)
 @app_commands.describe(channel="Registrierungskanal", role="Registrierungsrolle (optional, sofern mindestens eine Rolle bereits konfiguriert ist)")
 async def configure(interaction: Interaction, channel: TextChannel, role: Optional[Role]=None):
     MESSAGES = {
-        "SUCCESS": f"{Emojis.success.value} WZ-Registrierung wurde erfolgreich eingerichtet. \nKanal: {{channel_name}}",
-        "ERROR": f"{Emojis.error.value} Fehler beim Einrichten der WZ-Registrierung.",
-        "ERROR_ROLE_HIERARCHY": f"{Emojis.error.value} Die angegebene Rolle ist höher als die Bot-Rolle. Bitte wähle eine andere Rolle oder ändere die Bot-Rollenhierarchie.",
-        "ERROR_NO_CONFIGURED_ROLE": f"{Emojis.error.value} Es muss mindestens eine Rolle für die WZ-Registrierung festgelegt sein, wenn kein Kanal konfiguriert ist."
+        "SUCCESS": f"{Emojis.SUCCESS.value} WZ-Registrierung wurde erfolgreich eingerichtet. \nKanal: {{channel_name}}",
+        "ERROR": f"{Emojis.ERROR.value} Fehler beim Einrichten der WZ-Registrierung.",
+        "ERROR_ROLE_HIERARCHY": f"{Emojis.ERROR.value} Die angegebene Rolle ist höher als die Bot-Rolle. Bitte wähle eine andere Rolle oder ändere die Bot-Rollenhierarchie.",
+        "ERROR_NO_CONFIGURED_ROLE": f"{Emojis.ERROR.value} Es muss mindestens eine Rolle für die WZ-Registrierung festgelegt sein, wenn kein Kanal konfiguriert ist."
     }
     LOG_CONTEXT = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Setup Registration Configure : "
     LOGS = {

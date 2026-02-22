@@ -8,7 +8,7 @@ from discord import RawMessageDeleteEvent, Guild, Client
 from .registry import REGISTRY
 from .instance import Instance, Instances, InstanceType
 
-from . import Registration
+from . import registration
 
 __all__ = ["Manager", "Instance", "Instances", "Registration"]
 

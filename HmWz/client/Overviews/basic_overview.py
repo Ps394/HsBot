@@ -4,7 +4,6 @@ Diese Klasse implementiert die Instance-Schnittstelle und bietet grundlegende Fu
 Sie enthält Methoden zum Verwalten von Synchronisierungs-, Arbeits- und Löschstatus sowie Eigenschaften für den Zugriff auf den Client, die Gilde und die Services.
 """
 from __future__ import annotations
-import logging
 import asyncio
 from typing import Union, Type
 from discord import Guild, Client, Color, Asset
@@ -210,16 +209,6 @@ class BasicOverview(Instance):
         :rtype: discord.Asset
         """
         return self.guild.icon if self.guild.icon else self.client.user.avatar if self.client.user.avatar else None
-    
-    @property
-    def logger(self) -> logging.Logger:
-        """
-        Gibt den Logger zurück, der für die Übersicht verwendet wird.
-
-        :return: Der Logger.
-        :rtype: logging.Logger
-        """
-        return logging.getLogger(__name__)
 
     @property
     def log_context(self) -> str:

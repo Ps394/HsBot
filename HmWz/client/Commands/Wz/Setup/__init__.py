@@ -1,6 +1,6 @@
 from discord.app_commands import Group, checks, default_permissions
 
-from . import Configure, Roles, Message
+from . import configure, message, roles
 
 __all__ = ["SetupGroup"]
 
@@ -13,8 +13,8 @@ class SetupGroup(Group):
             description="Setup-Befehle für die WZ-Registrierung"
         )
         
-        self.add_command(Configure.configure)
-        self.add_command(Message.message)
-        self.add_command(Roles.add)
-        self.add_command(Roles.remove)
+        self.add_command(configure.configure)
+        self.add_command(message.message)
+        self.add_command(roles.add.add)
+        self.add_command(roles.remove.remove)
         

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
+import logging
 from typing import Optional, Sequence, Union, List, Tuple
 from discord import Guild, TextChannel, Message
 
@@ -15,7 +16,8 @@ class WzList(Base):
     """
     def __init__(self, database: Database):
         super().__init__(database)
-
+        self.logger = logging.getLogger(__name__)
+        
     @property
     def table(self) -> str:
         """
@@ -37,14 +39,14 @@ class WzList(Base):
         """
 
     @dataclass(frozen=True)
-    class data:
+    class Data:
         guild: Guild
         channel: DiscordChannel
         message: DiscordMessage
         title: Optional[str]
         text: Optional[str]
 
-    type Record = Optional[data]
+    type Record = Optional[Data]
     """
     Der Datentyp für einen einzelnen WZ-Warteliste.
     
@@ -59,13 +61,10 @@ class WzList(Base):
     :param text: Der Text der Warteliste. Kann None sein, wenn kein Text festgelegt ist.
     :type text: Optional[str]
     """
-    type Records = Optional[Tuple[Record, ...]]
+    type Records = Optional[Tuple[Data, ...]]
     """
     Der Datentyp für eine Sammlung von WZ-Wartelisteninformationen. Es kann ein Tuple von Record-Objekten oder None sein, wenn keine Wartelisteninformationen vorhanden sind.
     """
-
-    def __init__(self, database: Database):
-        super().__init__(database)
 
     async def get(self, *, guild: Guild) -> Records:
         """
@@ -105,7 +104,7 @@ class WzList(Base):
                 """
                 c = await fetch_channel(guild=guild, channel_id=rec["Channel"])
                 m = await fetch_message(channel=c, message_id=rec["Message"]) if isinstance(c, TextChannel) else c
-                return rec, self.data(
+                return rec, self.Data(
                     guild=guild,
                     channel=c,
                     message=m,

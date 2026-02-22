@@ -20,7 +20,7 @@ class WzRegistration(Base):
     
     def __init__(self, database: Database):
         super().__init__(database)
-        self.logger = logging.getLogger(f"{__name__}.{self.__class__.__name__}")
+        self.logger = logging.getLogger(__name__)
 
     @property
     def table(self) -> str:
@@ -88,9 +88,6 @@ class WzRegistration(Base):
     :param link: [Deprecated] Ein optionaler Link, der in der Registrierungsmeldung angezeigt werden kann. Kann None sein, wenn kein Link festgelegt ist.
     :type link: Optional[str]
     """
-
-    def __init__(self, database: Database):
-        self.database = database
 
     async def get(self, *, guild: Guild) -> Record:
         """

@@ -1,6 +1,7 @@
 from __future__ import annotations
 import asyncio
 from dataclasses import dataclass
+import logging
 from discord import Guild, Role
 from typing import Optional, Tuple
 
@@ -11,6 +12,7 @@ from ..database import Database
 class WzRoles(Base):
     def __init__(self, database: Database):
         self.database = database
+        self.logger = logging.getLogger(__name__)
 
     @property
     def table(self) -> str:

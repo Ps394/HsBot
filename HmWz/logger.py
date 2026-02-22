@@ -1,3 +1,6 @@
+"""
+Das Modul "logger" enthält die Definition der Logging-Funktionalität für die Anwendung. Es bietet eine zentrale Möglichkeit, Log-Nachrichten zu formatieren und auszugeben, sowohl in der Konsole als auch in Log-Dateien. Das Modul definiert einen benutzerdefinierten Formatter, der farbige Log-Ausgaben ermöglicht, um die Lesbarkeit der Logs zu verbessern. Es stellt auch eine Funktion zum Einrichten des Loggings bereit, die es ermöglicht, verschiedene Einstellungen wie Log-Level, Log-Datei und Rotationsoptionen zu konfigurieren.
+"""
 import os
 import logging
 from logging import Formatter, handlers
@@ -6,16 +9,16 @@ from .colors import Colors
 __all__ = ["setup_logging"]
 
 LEVEL_COLORS = {
-	logging.DEBUG: Colors.blue.value,
-	logging.INFO: Colors.white.value,
-	logging.WARNING: Colors.yellow.value,
-	logging.ERROR: Colors.red.value,
-	logging.CRITICAL: Colors.red_bold.value,
+	logging.DEBUG: Colors.BLUE_BOLD.value,
+	logging.INFO: Colors.BRIGHT_BLUE.value,
+	logging.WARNING: Colors.YELLOW.value,
+	logging.ERROR: Colors.RED.value,
+	logging.CRITICAL: Colors.RED_BOLD.value,
 }
 
-DATE_COLOR = Colors.grey.value
-RESET_COLOR = Colors.default.value
-MESSAGE_COLOR = Colors.default.value
+DATE_COLOR = Colors.GREY.value
+RESET_COLOR = Colors.DEFAULT.value
+MESSAGE_COLOR = Colors.DEFAULT.value
 
 class StyledFormatter(Formatter):
 	"""
@@ -32,7 +35,7 @@ class StyledFormatter(Formatter):
 		:return: Die formatierte Log-Nachricht als String.
 		:rtype: str
 		"""
-		level_color = LEVEL_COLORS.get(record.levelno, Colors.white.value)
+		level_color = LEVEL_COLORS.get(record.levelno, Colors.WHITE.value)
 		formatted = super().format(record)
 
 		time_str = self.formatTime(record, self.datefmt)
@@ -42,7 +45,7 @@ class StyledFormatter(Formatter):
 		colored_levelname = f"{level_color}{record.levelname}{RESET_COLOR}"
 		formatted = formatted.replace(record.levelname, colored_levelname, 1)
 
-		colored_name = f"{Colors.magenta.value}{record.name}{RESET_COLOR}"
+		colored_name = f"{Colors.MAGENTA.value}{record.name}{RESET_COLOR}"
 		formatted = formatted.replace(record.name, colored_name, 1)
 
 		message_str = record.getMessage()

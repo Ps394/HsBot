@@ -4,7 +4,7 @@ from discord import app_commands, Interaction, Attachment, HTTPException, Forbid
 from discord.app_commands import checks
 from .....emojis import Emojis
 from .....services import Services
-from ....Overviews import Manager
+from ....overviews import Manager
 
 logger = logging.getLogger(__name__)
 
@@ -14,11 +14,11 @@ logger = logging.getLogger(__name__)
 @app_commands.describe(message_upload="Textdatei mit der Nachricht (max. 4096 Zeichen)", title="Titel für die Nachricht (max. 256 Zeichen)", message="Text für die Nachricht (max. 4096 Zeichen)")
 async def message(interaction: Interaction, title: Optional[str] = None, message: Optional[str] = None, message_upload: Optional[Attachment] = None): 
     MESSAGES = {
-        "SUCCESS": f"{Emojis.success.value} Nachricht für die WZ-Registrierung wurde erfolgreich festgelegt.",
-        "NO_INPUT": f"{Emojis.error.value} Übergebe zumindest eine der Optionen: title, message oder message_upload.",
-        "TWO_MESSAGES": f"{Emojis.error.value} Bitte übergebe nur eine der Optionen: message oder message_upload. title kann optional mit einer der beiden übergeben werden.",
-        "ERROR": f"{Emojis.error.value} Fehler beim Festlegen der Nachricht für die WZ-Registrierung.",
-        "ERROR_FILE_TYPE": f"{Emojis.error.value} Ungültiger Dateityp. Bitte lade eine Textdatei (.txt) hoch."
+        "SUCCESS": f"{Emojis.SUCCESS.value} Nachricht für die WZ-Registrierung wurde erfolgreich festgelegt.",
+        "NO_INPUT": f"{Emojis.ERROR.value} Übergebe zumindest eine der Optionen: title, message oder message_upload.",
+        "TWO_MESSAGES": f"{Emojis.ERROR.value} Bitte übergebe nur eine der Optionen: message oder message_upload. title kann optional mit einer der beiden übergeben werden.",
+        "ERROR": f"{Emojis.ERROR.value} Fehler beim Festlegen der Nachricht für die WZ-Registrierung.",
+        "ERROR_FILE_TYPE": f"{Emojis.ERROR.value} Ungültiger Dateityp. Bitte lade eine Textdatei (.txt) hoch."
     }
     LOG_CONTEXT = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Setup Message : "
     LOGS = {

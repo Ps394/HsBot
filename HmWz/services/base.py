@@ -4,6 +4,8 @@ from discord import Guild
 from ..utils import log_guild
 from .database import Database
 
+logger = logging.getLogger(__name__)
+
 class Base:
     """
     Basisklasse für alle Services, die Zugriff auf die Datenbank benötigen. Diese Klasse bietet grundlegende Funktionen wie das Abrufen des Tabellennamens, Logging und das Zählen von Einträgen in der Tabelle.
@@ -22,6 +24,7 @@ class Base:
     """
     def __init__(self, database: Database):
         self.database : Database = database
+        self.logger : logging.Logger = logger
 
     @property
     def table_name(self) -> str:
@@ -52,11 +55,6 @@ class Base:
     def table(self) -> str:
         """Gibt die SQL-Abfrage zurück, um die Tabelle für diesen Service zu erstellen. Diese Eigenschaft muss von Unterklassen implementiert werden, um die spezifische SQL-Abfrage für die jeweilige Tabelle bereitzustellen."""
         raise NotImplementedError("Subclasses must implement the \"table\" property.")
-    
-    @property
-    def logger(self) -> logging.Logger:
-        """Gibt einen Logger zurück, der für das Logging in diesem Service verwendet wird. Standardmäßig ist dies ein Logger mit dem Namen des Moduls und der Klasse."""
-        return logging.getLogger(f"{__name__}.{self.__class__.__name__}")
 
     async def count(self) -> int:
         try:

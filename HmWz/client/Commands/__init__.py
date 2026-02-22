@@ -1,2 +1,2 @@
-from . import Wz
 from .registry import REGISTRY
+from .wz import WzGroup

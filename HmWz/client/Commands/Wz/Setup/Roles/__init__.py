@@ -1,7 +1,2 @@
-from .Add import add
-from .Remove import remove
-
-__all__ = [
-    "add",
-    "remove"
-]
+from .add import add as _add
+from .remove import remove as _remove

@@ -2,7 +2,7 @@ import logging
 from discord import app_commands, Interaction, HTTPException, Forbidden, NotFound, InteractionResponded
 from .....emojis import Emojis
 from .....services import Services, wz
-from ....Overviews import Manager
+from ....overviews import Manager
 
 logger = logging.getLogger(__name__)
 
@@ -12,10 +12,10 @@ logger = logging.getLogger(__name__)
 @app_commands.checks.cooldown(1, 120, key=lambda i: (i.guild_id))
 async def reset(interaction: Interaction, ephemeral: bool = True):
     MESSAGES = {
-        "SUCCESS": f"{Emojis.success.value} Alle nicht permanenten Registrierungen wurden zurückgesetzt.",
-        "ERROR": f"{Emojis.error.value} Beim Zurücksetzen der Registrierungen ist ein Fehler aufgetreten.",
-        "NOT_CONFIGURED": f"{Emojis.warning.value} Die WZ-Registrierung ist nicht konfiguriert. Bitte richte zuerst einen Registrierungskanal und Rollen ein.",
-        "NO_REGISTRATIONS": f"{Emojis.warning.value} Es sind keine Registrierungen zum Entfernen vorhanden. Permaente Rollen werden nicht entfernt."
+        "SUCCESS": f"{Emojis.SUCCESS.value} Alle nicht permanenten Registrierungen wurden zurückgesetzt.",
+        "ERROR": f"{Emojis.ERROR.value} Beim Zurücksetzen der Registrierungen ist ein Fehler aufgetreten.",
+        "NOT_CONFIGURED": f"{Emojis.WARNING.value} Die WZ-Registrierung ist nicht konfiguriert. Bitte richte zuerst einen Registrierungskanal und Rollen ein.",
+        "NO_REGISTRATIONS": f"{Emojis.WARNING.value} Es sind keine Registrierungen zum Entfernen vorhanden. Permaente Rollen werden nicht entfernt."
     }
     LOG_CONTEXT = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Registration Reset : "
     LOGS = {

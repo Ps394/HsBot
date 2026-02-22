@@ -73,6 +73,7 @@ async def fetch_channel(guild: Guild, channel_id: int) -> DiscordChannel:
     """
     channel = guild.get_channel(channel_id)
     if isinstance(channel, TextChannel):
+        logger.debug(f"channel {channel_id} for guild {log_guild(guild)} found in cache: {channel}")
         return channel
     
     try:
@@ -87,6 +88,9 @@ async def fetch_channel(guild: Guild, channel_id: int) -> DiscordChannel:
             return channel_id
     except Exception as e:
         return channel_id
+    finally:        
+        logger.debug(f"fetched channel {channel_id} for guild {log_guild(guild)}: {channel}")
+        await asyncio.sleep(DELAY)
  
 async def fetch_message(channel: TextChannel, message_id: int) -> DiscordMessage:
     """Versucht, eine Discord-Nachricht anhand der übergebenen Nachrichten-ID zu holen.
@@ -102,6 +106,9 @@ async def fetch_message(channel: TextChannel, message_id: int) -> DiscordMessage
         return await channel.fetch_message(message_id)
     except Exception as e:
         return message_id
+    finally:
+        logger.debug(f"fetched message {message_id} in channel {channel.id} for guild {log_guild(channel.guild)}")
+        await asyncio.sleep(DELAY)
     
 async def fetch_member(guild: Guild, member_id: int) -> DiscordMember:
     """
@@ -117,13 +124,16 @@ async def fetch_member(guild: Guild, member_id: int) -> DiscordMember:
     """
     member = guild.get_member(member_id) 
     if isinstance(member, Member):
+        logger.debug(f"member {member_id} for guild {log_guild(guild)} found in cache: {member}")
         return member
     try:
         return await guild.fetch_member(member_id)
     except Exception as e:
         return member_id
+    finally:
+        logger.debug(f"fetched member {member_id} for guild {log_guild(guild)}: {member}")
+        await asyncio.sleep(DELAY)
     
-@log_decorator
 async def fetch_role(guild: Guild, role_id: int) -> DiscordRole:
     """
     Versucht, eine Discord-Rolle anhand der übergebenen Rollen-ID zu holen.
@@ -138,6 +148,7 @@ async def fetch_role(guild: Guild, role_id: int) -> DiscordRole:
     """
     role = guild.get_role(role_id)
     if isinstance(role, Role):
+        logger.debug(f"role {role_id} for guild {log_guild(guild)} found in cache: {role}")
         return role
         
     try:
@@ -147,3 +158,6 @@ async def fetch_role(guild: Guild, role_id: int) -> DiscordRole:
                 return r
     except Exception as e:
         return role_id
+    finally:
+        logger.debug(f"fetched role {role_id} for guild {log_guild(guild)}: {role}")
+        await asyncio.sleep(DELAY)

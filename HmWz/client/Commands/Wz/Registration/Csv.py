@@ -1,7 +1,7 @@
 import logging
 import io
 from discord import app_commands, Interaction, File
-from ....Overviews import Manager
+from ....overviews import Manager
 from .....emojis import Emojis
 from .....services import Services, wz
 
@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 @app_commands.checks.cooldown(1, 120, key=lambda i: (i.guild_id))
 async def csv(interaction: Interaction, ephemeral: bool = True):
     MESSAGES = {
-        "SUCCESS": f"{Emojis.success.value} Die Registrierungen wurden als CSV-Datei exportiert.",
-        "ERROR": f"{Emojis.error.value} Fehler beim Exportieren der Registrierungen als CSV-Datei.",
-        "NOT_CONFIGURED": f"{Emojis.warning.value} Die WZ-Registrierung ist nicht konfiguriert. Bitte richte zuerst einen Registrierungskanal und Rollen ein.",
-        "NO_REGISTRATIONS": f"{Emojis.warning.value} Es sind keine Registrierungen zum Exportieren vorhanden."
+        "SUCCESS": f"{Emojis.SUCCESS.value} Die Registrierungen wurden als CSV-Datei exportiert.",
+        "ERROR": f"{Emojis.ERROR.value} Fehler beim Exportieren der Registrierungen als CSV-Datei.",
+        "NOT_CONFIGURED": f"{Emojis.WARNING.value} Die WZ-Registrierung ist nicht konfiguriert. Bitte richte zuerst einen Registrierungskanal und Rollen ein.",
+        "NO_REGISTRATIONS": f"{Emojis.WARNING.value} Es sind keine Registrierungen zum Exportieren vorhanden."
     }
     LOG_CONTEXT = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Registration CSV : "
     LOGS = {

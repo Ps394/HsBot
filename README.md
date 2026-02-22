@@ -127,7 +127,7 @@ pip install -U -r requirements.txt
 		```cmd
 		setx HSBOT_TOKEN "dein-token-hier"
 		```
-		Danach neues Terminal öffnen. Prüfen: `echo %HSBOT_TOKEN%`
+		Danach neues Terminal öffnen. Prüfen: `echo %WZ_BOT_TOKEN%`
 	- Windows (PowerShell, nur aktuelle Session):
 		```powershell
 		$env:HSBOT_TOKEN = "dein-token-hier"
@@ -136,11 +136,11 @@ pip install -U -r requirements.txt
 		```bash
 		export HSBOT_TOKEN="dein-token-hier"
 		```
-		Dauerhaft (bash): `echo 'export HSBOT_TOKEN="dein-token-hier"' >> ~/.bashrc`
+		Dauerhaft (bash): `echo 'export WZ_BOT_TOKEN="dein-token-hier"' >> ~/.bashrc`
 	- In Python lesen:
 		```python
 		import os
-		token = os.getenv("HSBOT_TOKEN")
+		token = os.getenv("WZ_BOT_TOKEN")
 		```
 
 - B) Windows-Registry (nur wenn gewünscht)

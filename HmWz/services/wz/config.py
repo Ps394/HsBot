@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import logging
 from discord import Guild
 from typing import Optional
 
@@ -13,15 +14,16 @@ class WzConfig(Base):
 
     def __init__(self, database: Database):
         super().__init__(database)
+        self.logger = logging.getLogger(__name__)
 
     @dataclass(frozen=True)
-    class data:
+    class Data:
         guild: Guild
         channel_id: Optional[int]
         score_mod_lvl: bool
         matchmaker: bool
 
-    type Record = Optional[data]
+    type Record = Optional[Data]
 
     @property
     def table(self):
@@ -41,7 +43,7 @@ class WzConfig(Base):
         :param guild: Das Guild-Objekt, für das die Konfiguration abgerufen werden soll.
         :type guild: Guild
         :return: Ein Record-Objekt mit den Konfigurationsdaten oder None, wenn keine Konfiguration gefunden wurde oder ein Fehler aufgetreten ist.
-        :rtype: Optional[Config.data]
+        :rtype: Optional[WzConfig.Data]
         """
         try:
             query = f"""
@@ -60,7 +62,7 @@ class WzConfig(Base):
                 return None
             
             self.logger.info(f"{self.log_prefix(guild)} WZ config retrieved.")
-            return self.data(
+            return self.Data(
                 guild=guild,
                 channel_id=row["ChannelID"],
                 score_mod_lvl=bool(row["ScoreModLvl"]),

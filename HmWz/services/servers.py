@@ -1,3 +1,4 @@
+import logging
 from discord import Guild
 from .base import Base
 from .database import Database
@@ -8,6 +9,7 @@ class Servers(Base):
     Diese Klasse bietet Methoden zum Hinzufügen, Entfernen und Zählen von Servern in der Datenbank."""
     def __init__(self, database: Database):
         super().__init__(database)
+        self.logger = logging.getLogger(__name__)
 
     @property
     def table(self) -> str:
