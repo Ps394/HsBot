@@ -26,7 +26,7 @@ class Instance(Protocol):
         :rtype: bool
         """
         ...
-    async def repair(self) -> bool: ...
+        
     async def send(self) -> bool: 
         """
         Soll die Übersicht senden, wenn diese eingerichtet ist.

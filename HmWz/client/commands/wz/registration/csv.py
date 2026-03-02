@@ -39,7 +39,7 @@ async def csv(interaction: Interaction, ephemeral: bool = True):
             await interaction.followup.send(MESSAGES["NOT_CONFIGURED"], ephemeral=True)
             return
         
-        role_ids = [role_record.role.id for role_record in configured_roles] if configured_roles else []
+        role_ids = [role_record.role for role_record in configured_roles] if configured_roles else []
         registrations: wz.RegistrationsRecords = await services.wz.registrations.get(guild=interaction.guild, roles=role_ids)
         
         if not registrations:

@@ -1,11 +1,8 @@
 from __future__ import annotations
 import asyncio
-from dataclasses import dataclass
 import logging
-from discord import Guild, Role
-from typing import Optional, Tuple
 
-from ...utils import fetch_role, DiscordRole, Id, Ids
+from ...types import Optional, Tuple, dataclass, Id, Ids, Guild
 from ..base import Base
 from ..database import Database
 
@@ -14,6 +11,13 @@ class WzRoles(Base):
         self.database = database
         self.logger = logging.getLogger(__name__)
 
+    @dataclass(frozen=True)
+    class TableCols:
+        Guild: str = "Guild"
+        Role: str = "Role"
+        Permanent: str = "Permanent"
+        Score: str = "Score"
+        
     @property
     def table(self) -> str:
         """
@@ -21,18 +25,18 @@ class WzRoles(Base):
         """
         return f"""
         CREATE TABLE IF NOT EXISTS {self.table_name}(
-        Guild INTEGER,
-        Role INTEGER,
-        Permanent BOOLEAN,
-        Score INTEGER DEFAULT 1,
-        PRIMARY KEY (Guild, Role)
+        {self.TableCols.Guild} INTEGER,
+        {self.TableCols.Role} INTEGER,
+        {self.TableCols.Permanent} BOOLEAN,
+        {self.TableCols.Score} INTEGER DEFAULT 1,
+        PRIMARY KEY ({self.TableCols.Guild}, {self.TableCols.Role})
         )WITHOUT ROWID
         """
 
     @dataclass(frozen=True)
     class Data:
         guild: Guild
-        role: DiscordRole
+        role: Id
         permanent: bool
         score: int
     
@@ -42,8 +46,8 @@ class WzRoles(Base):
 
     :param guild: Das Guild-Objekt, zu dem die Rolle gehört.
     :type guild: discord.Guild
-    :param role: Das DiscordRole-Objekt, das die Rolle repräsentiert.
-    :type role: DiscordRole
+    :param role: Die ID der Discord-Rolle, die die Rolle repräsentiert.
+    :type role: int
     :param permanent: Gibt an, ob die Rolle permanent ist.
     :type permanent: bool
     :param score: Die Punktzahl der Rolle.
@@ -57,7 +61,7 @@ class WzRoles(Base):
         self.database = database
         self.logger = logging.getLogger(__name__)
 
-    async def count(self, *, guild: Guild, permanent: Optional[bool] = None, roles: Ids = None) -> int:
+    async def count(self, *, guild: Guild, permanent: Optional[bool] = None, roles: Optional[Ids] = None) -> int:
         """
         Zählt die Anzahl der WZ-Registrierungsrollen in einem Guild, optional gefiltert nach Permanenz oder einer Liste von Rollen-IDs.
         
@@ -75,15 +79,15 @@ class WzRoles(Base):
             if permanent is not None and roles:
                 raise ValueError("Cannot provide both permanent and roles filters.")
             
-            query = f"SELECT COUNT(*) FROM {self.table_name} WHERE Guild = ?"
+            query = f"SELECT COUNT(*) FROM {self.table_name} WHERE {self.TableCols.Guild} = ?"
             params = [guild.id]
 
             if permanent is not None:
-                query += " AND Permanent = ?"
+                query += f" AND {self.TableCols.Permanent} = ?"
                 params.append(int(permanent))
             elif roles:
                 placeholders = ','.join('?' for _ in roles)
-                query += f" AND Role IN ({placeholders})"
+                query += f" AND {self.TableCols.Role} IN ({placeholders})"
                 params.extend(roles)
 
             row = await self.database.fetch_one(query, tuple(params))
@@ -106,11 +110,11 @@ class WzRoles(Base):
         :rtype: Records
         """
         try:
-            query = f"SELECT Role, Permanent, Score FROM {self.table_name} WHERE Guild = ?"
+            query = f"SELECT {self.TableCols.Role}, {self.TableCols.Permanent}, {self.TableCols.Score} FROM {self.table_name} WHERE {self.TableCols.Guild} = ?"
             params = [guild.id]
 
             if permanent is not None:
-                query += " AND Permanent = ?"
+                query += f" AND {self.TableCols.Permanent} = ?"
                 params.append(int(permanent))
 
             records = await self.database.fetch_all(query, tuple(params))
@@ -121,32 +125,16 @@ class WzRoles(Base):
                 """
                 Hilfsfunktion, um die Rolle für einen Datensatz aufzulösen und gleichzeitig Fehler zu protokollieren.
                 """
-                r = await fetch_role(guild=guild, role_id=rec["Role"])
-                return rec, r
+                return self.Data(
+                    guild=guild,
+                    role=rec[self.TableCols.Role],
+                    permanent=bool(rec[self.TableCols.Permanent]),
+                    score=rec[self.TableCols.Score]
+                )
+            out = []
+            out : WzRoles.Records = await asyncio.gather(*(resolve_records(rec) for rec in records))
             
-            resolved_records = await asyncio.gather(*(resolve_records(rec) for rec in records))
-
-            valid_records = []
-            stale_roles = []
-
-            for record, record_role in resolved_records:
-                if isinstance(record_role, Role):
-                    valid_records.append(self.Data(
-                        guild=guild, 
-                        role=record_role, 
-                        permanent=bool(record["Permanent"]), 
-                        score=record["Score"]))
-                elif isinstance(record_role, int):
-                    self.logger.debug(f"{self.log_prefix(guild)} WZ registration role {record['Role']} is a raw ID, expected a Role object. Marking for removal.")
-                    stale_roles.append(record_role)
-
-            cleanup_tasks = []
-            if stale_roles:
-                cleanup_tasks.append(self.remove(guild=guild, roles=stale_roles))
-            if cleanup_tasks:
-                await asyncio.gather(*cleanup_tasks)
-                
-            return tuple(valid_records) if valid_records else None
+            return out if out else None
         except Exception as e:
             self.logger.exception(f"{self.log_prefix(guild)} Failed to get WZ registration roles: {e}")
             return None

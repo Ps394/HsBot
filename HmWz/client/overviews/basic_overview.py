@@ -5,8 +5,8 @@ Sie enthält Methoden zum Verwalten von Synchronisierungs-, Arbeits- und Löschs
 """
 from __future__ import annotations
 import asyncio
-from typing import Union, Type
-from discord import Guild, Client, Color, Asset
+from typing import Union, Type, Optional
+from discord import Embed, Guild, Client, Color, Asset, utils
 from .instance import Instance 
 from ...services import Services
 
@@ -20,6 +20,12 @@ class BasicOverview(Instance):
 
     WAIT_INTERVAL : float = 0.2
     WAIT_INTERVAL_LONG : float = 1.0
+
+    class BotEmbed(Embed):
+        def __init__(self, title: str, description: str, color: Color, client_avatar: Optional[Asset] = None):
+            super().__init__(title=title, description=description, color=color)
+            self.set_footer(text=f"|", icon_url=client_avatar.url if client_avatar else None)
+            self.timestamp = utils.utcnow()
 
     def __init__(self, guild: Guild, services: Services, client: Client):
         """

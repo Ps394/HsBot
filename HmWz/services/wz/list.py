@@ -1,14 +1,10 @@
 from __future__ import annotations
 import asyncio
-from dataclasses import dataclass
 import logging
-from typing import Optional, Sequence, Union, List, Tuple
-from discord import Guild, TextChannel, Message
-
+from dataclasses import dataclass
 from ..database import Database
 from ..base import Base
-
-from ...types import Id, Ids
+from ...types import Id, Ids, Guild, Optional, Tuple
 
 class WzList(Base):
     """
@@ -18,6 +14,14 @@ class WzList(Base):
         super().__init__(database)
         self.logger = logging.getLogger(__name__)
         
+    @dataclass(frozen=True)
+    class TableCols:
+        Guild: str = "Guild"
+        Channel: str = "Channel"
+        Message: str = "Message"
+        Title: str = "Title"
+        Text: str = "Text"
+    
     @property
     def table(self) -> str:
         """
@@ -28,13 +32,13 @@ class WzList(Base):
         """
         return f"""
         CREATE TABLE IF NOT EXISTS {self.table_name} (
-            Guild INTEGER,
-            Channel INTEGER,
-            Message INTEGER,
-            Title TEXT,
-            Text TEXT,
-        FOREIGN KEY (Guild) REFERENCES Servers(Guild),
-        PRIMARY KEY (Guild, Message)
+            {self.TableCols.Guild} INTEGER,
+            {self.TableCols.Channel} INTEGER,
+            {self.TableCols.Message} INTEGER,
+            {self.TableCols.Title} TEXT,
+            {self.TableCols.Text} TEXT,
+        FOREIGN KEY ({self.TableCols.Guild} ) REFERENCES Servers(Guild),
+        PRIMARY KEY ({self.TableCols.Guild}, {self.TableCols.Message})
         ) WITHOUT ROWID
         """
 
@@ -79,39 +83,38 @@ class WzList(Base):
         try:
             query = f"""
             SELECT 
-                Channel, 
-                Message, 
-                Title, 
-                Text 
+                {self.TableCols.Channel}, 
+                {self.TableCols.Message}, 
+                {self.TableCols.Title}, 
+                {self.TableCols.Text} 
             FROM 
                 {self.table_name} 
             WHERE 
-                Guild = ?
+                {self.TableCols.Guild} = ?
             """
             params = (guild.id,)
             records = await self.database.fetch_all(query, params)
             if not records:
                 return None
 
-            async def resolve_records(rec) -> Records:
+            async def resolve_records(rec) -> WzList.Records:
                 """
                 Hilfsfunktion, um die Channel- und Message-IDs in den Datenbankeinträgen aufzulösen.
                 
                 :param rec: Ein einzelner Datenbankeintrag.
                 :type rec: dict
                 :return: Tuple mit Record
-                :rtype: Records
+                :rtype: WzList.Records
                 """
                 return self.Data(
                     guild=guild,
-                    channel=rec["Channel"],
-                    message=rec["Message"],
-                    title=rec["Title"],
-                    text=rec["Text"]
+                    channel=rec[self.TableCols.Channel],
+                    message=rec[self.TableCols.Message],
+                    title=rec[self.TableCols.Title],
+                    text=rec[self.TableCols.Text]
                 )
-
-            out : self.Records = await asyncio.gather(*(resolve_records(rec) for rec in records))
-            
+            out = []
+            out : WzList.Records = await asyncio.gather(*(resolve_records(rec) for rec in records))
             return out if out else None
         except Exception as e:
             self.logger.exception(f"{self.log_prefix(guild)} Failed to get WZ lists: {e}")
@@ -135,7 +138,7 @@ class WzList(Base):
         :rtype: bool
         """
         try:
-            query = f"INSERT INTO {self.table_name} (Guild, Channel, Message, Title, Text) VALUES (?, ?, ?, ?, ?)"
+            query = f"INSERT INTO {self.table_name} ({self.TableCols.Guild}, {self.TableCols.Channel}, {self.TableCols.Message}, {self.TableCols.Title}, {self.TableCols.Text}) VALUES (?, ?, ?, ?, ?)"
             await self.database.execute(query, params=(guild.id, channel, message, title, text))
             self.logger.info(f"{self.log_prefix(guild)} Added WZ list entry.")
             return True
@@ -159,7 +162,7 @@ class WzList(Base):
         :rtype: bool
         """
         try:
-            query = f"UPDATE {self.table_name} SET Title = ?, Text = ? WHERE Guild = ? AND Message = ?"
+            query = f"UPDATE {self.table_name} SET {self.TableCols.Title} = ?, {self.TableCols.Text} = ? WHERE {self.TableCols.Guild} = ? AND {self.TableCols.Message} = ?"
             await self.database.execute(query, params=(title, text, guild.id, message))
             self.logger.info(f"{self.log_prefix(guild)} Updated WZ list entry.")
             return True
@@ -181,14 +184,14 @@ class WzList(Base):
         :rtype: bool
         """
         try:
-            query = f"DELETE FROM {self.table_name} WHERE Guild = ?"
+            query = f"DELETE FROM {self.table_name} WHERE {self.TableCols.Guild} = ?"
             params = [guild.id]
             if messages is not None:
                 placeholders = ','.join('?' for _ in messages)
-                query += f" AND Message IN ({placeholders})"
+                query += f" AND {self.TableCols.Message} IN ({placeholders})"
                 params.extend(messages)
             elif message is not None:
-                query += " AND Message = ?"
+                query += f" AND {self.TableCols.Message} = ?"
                 params.append(message)
             await self.database.execute(query, tuple(params))
             self.logger.info(f"{self.log_prefix(guild)} Removed WZ list entry.")

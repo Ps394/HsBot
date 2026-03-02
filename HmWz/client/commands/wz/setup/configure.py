@@ -51,6 +51,7 @@ async def configure(interaction: Interaction, channel: TextChannel, role: Option
             success_role = await services.wz.roles.add(guild=interaction.guild, role=role.id, permanent=False, score=1)
 
         if success_channel or success_role:
+           
             await overview_manager.sync(guild=interaction.guild)
             await overview_manager.ensure(guild=interaction.guild)
             await interaction.followup.send(MESSAGES["SUCCESS"].format(channel_name=channel.name), ephemeral=True)

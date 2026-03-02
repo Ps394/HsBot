@@ -1,9 +1,18 @@
 import asyncio
 import logging
 from functools import wraps
-from typing import Union, Callable, Optional, Tuple
-from discord import Guild, TextChannel, Message, Member, Role, NotFound, RateLimited, Forbidden, HttpException
-
+from discord import Guild, TextChannel, Message, Member, Role
+from .types import (
+    Tuple,
+    Callable,
+    Id, 
+    Ids, 
+    DiscordChannel, 
+    DiscordMessage, 
+    DiscordMember, 
+    DiscordRole
+)
+from .exception import Forbidden, NotFound, HTTPException, RateLimited
 """
 Hilfsfunktionen und Typdefinitionen für Discord-Objekte, sowie ein Dekorator für das Protokollieren von Funktionsaufrufen und Ausnahmen. 
 Diese Funktionen erleichtern den Zugriff auf Discord-Kanäle, Nachrichten, Mitglieder und Rollen, indem sie versuchen, die entsprechenden Objekte zu holen und bei Fehlern die IDs zurückgeben. 
@@ -13,15 +22,6 @@ Alle Funktionen sind mit einem Log-Dekorator versehen, um die Aufrufe und Ergebn
 DELAY : float = 0.1
 
 logger = logging.getLogger(__name__)
-
-type DiscordMember = Union[Member, int]
-"""Representiert ein Discord-Mitglied, entweder als Member-Objekt oder als ID (int). Kann auch None sein, wenn kein Mitglied vorhanden ist."""
-type DiscordRole = Union[Role, int]
-"""Representiert eine Discord-Rolle, entweder als Role-Objekt oder als ID (int). Kann auch None sein, wenn keine Rolle vorhanden ist."""
-type DiscordChannel = Union[TextChannel, int]
-"""Representiert einen Discord-Kanal, entweder als TextChannel-Objekt oder als ID (int). Kann auch None sein, wenn kein Kanal vorhanden ist."""
-type DiscordMessage = Union[Message, int]
-"""Representiert eine Discord-Nachricht, entweder als Message-Objekt oder als ID (int). Kann auch None sein, wenn keine Nachricht vorhanden ist."""
 
 type Id = int
 """Ein allgemeiner Typ für eine Id, der in den Funktionen verwendet wird, um die Rückgabe von Discord-Objekten oder deren IDs zu repräsentieren."""
@@ -73,30 +73,32 @@ async def fetch_channel(guild: Guild, channel_id: int) -> DiscordChannel:
     """
     channel = guild.get_channel(channel_id)
     if isinstance(channel, TextChannel):
-        logger.info(f"channel {channel_id} for guild {log_guild(guild)} found in cache: {channel}")
+        logger.debug(f"channel {channel_id} for guild {log_guild(guild)} found in cache: {channel}")
         return channel
-    elif channel is none:
+    elif channel is None:
         pass
-    else
-        logger.error("channel {channel_id} for guild {log_guild(guild)} seems to be no valid Textchannel!")
+    else:
+        logger.error(f"channel {channel_id} for guild {log_guild(guild)} seems to be no valid Textchannel!")
         return channel_id
-    while(channel is None):
-        try:
-            channel = await guild.fetch_channel(channel_id)
+    try:
+        while(channel := await guild.fetch_channel(channel_id)):
             if isinstance(channel, TextChannel):
-                logger.info(f"fetched channel {channel_id} for guild {log_guild(guild)}: {channel}")
+                logger.debug(f"fetched channel {channel_id} for guild {log_guild(guild)}: {channel}")
                 return channel
-        except RateLimited as e:
-            await asyncio.sleep(e.retry_after )
-        except (NotFound, HttpException) as e:
-            logger.warning(f"channel {channel_id} for guild {log_guild(guild)} unable to find!")
-            return channel_id
-        except Forbidden as e:
-            logger.warning(f"channel {channel_id} for guild {log_guild(guild)} permission denied!")
-            return channel_id
-        finally:        
-            await asyncio.sleep(DELAY)
- 
+            else:
+                logger.error(f"channel {channel_id} for guild {log_guild(guild)} seems to be no valid Textchannel!")
+                return channel_id
+    except RateLimited as e:
+        await asyncio.sleep(e.retry_after )
+    except (NotFound, HTTPException) as e:
+        logger.warning(f"channel {channel_id} for guild {log_guild(guild)} unable to find!")
+        return channel_id
+    except Forbidden as e:
+        logger.warning(f"channel {channel_id} for guild {log_guild(guild)} permission denied!")
+        return channel_id
+    finally:        
+        await asyncio.sleep(DELAY)
+    
 async def fetch_message(channel: TextChannel, message_id: int) -> DiscordMessage:
     """Versucht, eine Discord-Nachricht anhand der übergebenen Nachrichten-ID zu holen.
 
@@ -108,11 +110,19 @@ async def fetch_message(channel: TextChannel, message_id: int) -> DiscordMessage
     :rtype: DiscordMessage
     """
     try:
-        return await channel.fetch_message(message_id)
-    except Exception as e:
+        while search := await channel.fetch_message(message_id):
+            if isinstance(search, Message):
+                logger.debug(f"fetched message {message_id} in channel {channel.id} for guild {log_guild(channel.guild)}: {search}")
+                return search
+    except RateLimited as e:
+        await asyncio.sleep(e.retry_after )
+    except (NotFound, HTTPException) as e:
+        logger.warning(f"message {message_id} in channel {channel.id} for guild {log_guild(channel.guild)} unable to find!")
+        return message_id
+    except Forbidden as e:
+        logger.warning(f"message {message_id} in channel {channel.id} for guild {log_guild(channel.guild)} permission denied!")
         return message_id
     finally:
-        logger.debug(f"fetched message {message_id} in channel {channel.id} for guild {log_guild(channel.guild)}")
         await asyncio.sleep(DELAY)
     
 async def fetch_member(guild: Guild, member_id: int) -> DiscordMember:
@@ -130,24 +140,23 @@ async def fetch_member(guild: Guild, member_id: int) -> DiscordMember:
     member = guild.get_member(member_id) 
     if isinstance(member, Member):
         logger.debug(f"member {member_id} for guild {log_guild(guild)} found in cache: {member}")
-        return Member
-    
-    while(member is none)
-        try:
-            member = await guild.fetch_member(member_id)
-            logger.info(f"fetched member {member_id} for guild {log_guild(guild)}: {member}")
-            return member
-        except RateLimited as e:
-            await asyncio.sleep(e.retry_after )
-        except (NotFound, HttpException) as e:
-            logger.warning(f"member {member_id} for guild {log_guild(guild)} unable to find!")
-            return member_id
-        except Forbidden as e:
-            logger.warning(f"member {member_id} for guild {log_guild(guild)} permission denied!")
-            return member_id
+        return member
+    try:
+        while(member := await guild.fetch_member(member_id)):
+            if isinstance(member, Member):
+                logger.debug(f"fetched member {member_id} for guild {log_guild(guild)}: {member}")
+                return member
+    except RateLimited as e:
+        await asyncio.sleep(e.retry_after )
+    except (NotFound, HTTPException) as e:
+        logger.warning(f"member {member_id} for guild {log_guild(guild)} unable to find!")
+        return member_id
+    except Forbidden as e:
+        logger.warning(f"member {member_id} for guild {log_guild(guild)} permission denied!")
+        return member_id
     finally:
         await asyncio.sleep(DELAY)
-    
+
 async def fetch_role(guild: Guild, role_id: int) -> DiscordRole:
     """
     Versucht, eine Discord-Rolle anhand der übergebenen Rollen-ID zu holen.

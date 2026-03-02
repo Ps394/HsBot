@@ -1,15 +1,13 @@
 from __future__ import annotations
 import datetime
 import asyncio
-from dataclasses import dataclass
 import logging
-from typing import Optional, Union, Tuple
-from discord import Guild
 
-from ...utils import fetch_member, fetch_role, DiscordMember, DiscordRole, Ids, Id
 from ..database import Database
 from ..base import Base
 from .roles import WzRoles
+
+from ...types import dataclass, Optional, Union, Tuple, Id, Ids, Guild
 
 class WzRegistrations(Base):
     """
@@ -21,24 +19,38 @@ class WzRegistrations(Base):
         self.roles_service = WzRoles(database)
         self.logger = logging.getLogger(__name__)
 
+    @dataclass(frozen=True)
+    class TableCols:
+        Guild: str = "Guild"
+        Member: str = "Member"
+        Role: str = "Role"
+        Timestamp: str = "Timestamp"
+
     @property
     def table(self) -> str:
         return f"""
         CREATE TABLE IF NOT EXISTS {self.table_name}(
-            Guild INTEGER,
-            Member INTEGER,
-            Role INTEGER,
-            Timestamp TEXT DEFAULT CURRENT_TIMESTAMP,
-            PRIMARY KEY (Guild, Member)
+            {self.TableCols.Guild} INTEGER,
+            {self.TableCols.Member} INTEGER,
+            {self.TableCols.Role} INTEGER,
+            {self.TableCols.Timestamp} TEXT DEFAULT CURRENT_TIMESTAMP,
+            PRIMARY KEY ({self.TableCols.Guild}, {self.TableCols.Member})
         )WITHOUT ROWID
         """
 
     @dataclass(frozen=True)
     class Data:
         guild: Guild
-        member: DiscordMember
-        role: DiscordRole
+        member: Optional[Id]
+        role: Optional[Id]
         timestamp: str
+
+        @property
+        def has_member(self) -> bool:
+            return self.member is not None
+        @property
+        def has_role(self) -> bool:
+            return self.role is not None
 
     type Record = Optional[Data]
     """
@@ -46,14 +58,15 @@ class WzRegistrations(Base):
     
     :param guild: Das Guild-Objekt, für das die Registrierung gilt.
     :type guild: discord.Guild
-    :param member: Das DiscordMember-Objekt, das das registrierte Mitglied repräsentiert.
-    :type member: DiscordMember
-    :param role: Das DiscordRole-Objekt, das die mit der Registrierung verknüpften Rolle repräsentiert.
+    :param member: Die ID des registrierten Mitglieds.
+    :type member: Optional[int]
+    :param role: Die ID der mit der Registrierung verknüpften Rolle.
+    :type role: Optional[int]
     :type role: DiscordRole
     :param timestamp: Der Zeitstempel der Registrierung.
     :type timestamp: str
     """
-    type Records = Union[Optional[Tuple[Data, ...]], Record]
+    type Records = Optional[Tuple[Data, ...]]
     """
     Der Datentyp für die WZ-Registrierungsinformationen einer Guild. Er kann entweder ein einzelner Record oder ein Tuple von Records sein, oder None, wenn keine Registrierungen vorhanden sind.
     """
@@ -73,8 +86,6 @@ class WzRegistrations(Base):
         :raises ValueError: Wenn sowohl role als auch roles Filter gleichzeitig angegeben werden.
         """
         try:
-            if roles:
-                roles = tuple(roles)
             if role and roles:
                 raise ValueError("Cannot provide both role and roles filters.")
           
@@ -84,20 +95,20 @@ class WzRegistrations(Base):
             FROM 
                 {self.table_name} 
             WHERE 
-                Guild = ?
+                {self.TableCols.Guild} = ?
             """
 
             params = [guild.id]
             if role:
-                query += " AND Role = ?"
+                query += f" AND {self.TableCols.Role} = ?"
                 params.append(role)
             elif roles:
                 placeholders = ','.join('?' for _ in roles)
-                query += f" AND Role IN ({placeholders})"
+                query += f" AND {self.TableCols.Role} IN ({placeholders})"
                 params.extend(roles)
             
             row = await self.database.fetch_one(query, params)
-            self.logger.debug(f"{self.log_prefix(guild)} Counted WZ registrations with filters role={role}, roles={roles}: {row[0] if row else 0}")
+            self.logger.info(f"{self.log_prefix(guild)} Counted WZ registrations with filters role={role}, roles={roles}: {row[0] if row else 0}")
             return row[0] if row else 0
         except Exception as e:
             self.logger.exception(f"{self.log_prefix(guild)} Failed to count WZ registrations: {e}")
@@ -117,28 +128,26 @@ class WzRegistrations(Base):
         :param roles: Optionaler Filter, um Registrierungen mit bestimmten Rollen abzurufen
         :type roles: Optional[tuple[int, ...]]  
         :return: Die WZ-Registrierungsinformationen, die den angegebenen Filtern entsprechen.
-        :rtype: Records
+        :rtype: Union[Records, Record]
         :raises ValueError: Wenn sowohl member als auch role/roles Filter gleichzeitig angegeben werden.
         """
         try:
-            roles = tuple(roles) if roles else None
-
             if member and (role or roles):
                 raise ValueError("Cannot combine member with role or roles filters.")
             if role and roles:
                 raise ValueError("Cannot provide both role and roles filters.")
             
-            query = f"SELECT * FROM {self.table_name} WHERE Guild = ?"
+            query = f"SELECT * FROM {self.table_name} WHERE {self.TableCols.Guild} = ?"
             params = [guild.id]
             if member:
-                query += " AND Member = ?"
+                query += f" AND {self.TableCols.Member} = ?"
                 params.append(member)
             elif roles:
                 placeholders = ','.join('?' for _ in roles)
-                query += f" AND Role IN ({placeholders})"
+                query += f" AND {self.TableCols.Role} IN ({placeholders})"
                 params.extend(roles)
             elif role:
-                query += " AND Role = ?"
+                query += f" AND {self.TableCols.Role} = ?"
                 params.append(role)
 
             records = await self.database.fetch_all(query, tuple(params))
@@ -146,41 +155,17 @@ class WzRegistrations(Base):
                 return None
             
             async def resolve_records(rec):
-                m = await fetch_member(guild=guild, member_id=rec["Member"])
-                r = await fetch_role(guild=guild, role_id=rec["Role"])
-                return rec, m, r
+                return self.Data(
+                    guild=guild,
+                    member=rec[self.TableCols.Member],
+                    role=rec[self.TableCols.Role],
+                    timestamp=rec[self.TableCols.Timestamp]
+                )
 
-            resolved_records = await asyncio.gather(*(resolve_records(rec) for rec in records))
+            out = []
+            out : WzRegistrations.Records = await asyncio.gather(*(resolve_records(rec) for rec in records))
 
-            valid_records = []
-            stale_members = []
-            stale_roles = []
-
-            for record, record_member, record_role in resolved_records:
-                if isinstance(record_member, int) or isinstance(record_role, int):
-                    stale_members.append(record["Member"])
-                    stale_roles.append(record["Role"]) if isinstance(record_role, int) else None
-                    self.logger.info(f"{self.log_prefix(guild)} WZ registration for member {record['Member']} with role {record['Role']} is stale and will be removed.")
-                    continue
-                else:
-                    valid_records.append(self.Data(
-                        guild=guild,
-                        member=record_member,
-                        role=record_role,
-                        timestamp=record["Timestamp"]
-                    ))
-
-            cleanup_tasks = []
-            if stale_members:
-                cleanup_tasks.append(self.remove(guild=guild, members=stale_members))
-            if stale_roles:
-                cleanup_tasks.append(self.roles_service.remove(guild=guild, roles=stale_roles))
-            if cleanup_tasks:
-                await asyncio.gather(*cleanup_tasks)
-                
-            if not valid_records:
-                return None
-            return valid_records[0] if member else tuple(valid_records)
+            return out if out else None
         except Exception as e:
             self.logger.exception(f"{self.log_prefix(guild)} Failed to get WZ registrations: {e}")
             return None
@@ -200,7 +185,7 @@ class WzRegistrations(Base):
         """
         try:
             timestamp = datetime.datetime.now(datetime.timezone.utc).isoformat()
-            query = f"""INSERT OR REPLACE INTO {self.table_name} (Guild, Member, Role, Timestamp) VALUES (?, ?, ?, ?)"""
+            query = f"""INSERT OR REPLACE INTO {self.table_name} ({self.TableCols.Guild}, {self.TableCols.Member}, {self.TableCols.Role}, {self.TableCols.Timestamp}) VALUES (?, ?, ?, ?)"""
             params = (guild.id, member, role, timestamp)
             await self.database.execute(query, params)
             return True    
@@ -233,22 +218,22 @@ class WzRegistrations(Base):
 
             roles = tuple(roles) if roles else None
             members = tuple(members) if members else None
-            query = f"DELETE FROM {self.table_name} WHERE Guild = ?"
+            query = f"DELETE FROM {self.table_name} WHERE {self.TableCols.Guild} = ?"
             params = [guild.id]
 
             if member:
-                query += " AND Member = ?"
+                query += f" AND {self.TableCols.Member} = ?"
                 params.append(member)
             elif roles:
                 placeholders = ','.join('?' for _ in roles)
-                query += f" AND Role IN ({placeholders})"
+                query += f" AND {self.TableCols.Role} IN ({placeholders})"
                 params.extend(roles)
             elif role:
-                query += " AND Role = ?"
+                query += f" AND {self.TableCols.Role} = ?"
                 params.append(role)
             elif members:
                 placeholders = ','.join('?' for _ in members)
-                query += f" AND Member IN ({placeholders})"
+                query += f" AND {self.TableCols.Member} IN ({placeholders})"
                 params.extend(members)
             await self.database.execute(query, tuple(params))
             return True

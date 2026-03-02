@@ -1,7 +1,9 @@
+from __future__ import annotations
 import logging
-from discord import Guild
 from .base import Base
 from .database import Database
+
+from ..types import dataclass, Guild
 
 class Servers(Base):
     """ 
@@ -10,6 +12,11 @@ class Servers(Base):
     def __init__(self, database: Database):
         super().__init__(database)
         self.logger = logging.getLogger(__name__)
+
+    @dataclass(frozen=True)
+    class TableCols:
+        Guild: str = "Guild"
+        Name: str = "Name"
 
     @property
     def table(self) -> str:
@@ -21,8 +28,8 @@ class Servers(Base):
         """
         return f"""
         CREATE TABLE IF NOT EXISTS {self.table_name} (
-            Guild INTEGER PRIMARY KEY,
-            Name TEXT
+            {self.TableCols.Guild} INTEGER PRIMARY KEY,
+            {self.TableCols.Name} TEXT
         ) WITHOUT ROWID
         """
     
@@ -37,9 +44,9 @@ class Servers(Base):
         """
         try:
             query = f"""
-                INSERT INTO {self.table_name} (Guild, Name) 
+                INSERT INTO {self.table_name} ({self.TableCols.Guild}, {self.TableCols.Name}) 
                 VALUES (?, ?) 
-                ON CONFLICT(Guild) DO UPDATE SET Name = excluded.Name
+                ON CONFLICT({self.TableCols.Guild}) DO UPDATE SET {self.TableCols.Name} = excluded.{self.TableCols.Name}
             """
             await self.database.execute(query, (guild.id, guild.name))
             self.logger.info(f"{self.log_prefix(guild)} Added/Updated server.")
@@ -58,7 +65,7 @@ class Servers(Base):
         :rtype: bool
         """
         try:
-            query = f"DELETE FROM {self.table_name} WHERE Guild = ?"
+            query = f"DELETE FROM {self.table_name} WHERE {self.TableCols.Guild} = ?"
             await self.database.execute(query, (guild.id,))
             return True
         except Exception as e:

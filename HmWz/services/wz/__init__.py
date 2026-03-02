@@ -36,8 +36,6 @@ Der Datentyp für die Registrierungskanal- und -nachrichteninformationen einer G
 :type title: Optional[str]
 :param description: Die Beschreibung der Registrierungsmeldung. Kann None sein, wenn keine Beschreibung festgelegt werden soll.
 :type description: Optional[str]
-:param link: [Deprecated] Ein optionaler Link, der in der Registrierungsmeldung angezeigt werden kann. Kann None sein, wenn kein Link festgelegt ist.
-:type link: Optional[str]
 """
 type RegistrationsRecord = WzRegistrations.Record
 """

@@ -5,11 +5,15 @@ import os
 
 from typing import Optional
 from discord import app_commands
-from discord import Client as DiscordClient, Intents, app_commands, Interaction, Guild, Member, Role, RawMessageDeleteEvent
+from discord import Client as DiscordClient, Intents, app_commands, Interaction
+
 from . import overviews
 from . import commands
 from .. import services
 from ..emojis import Emojis
+from ..types import Guild, TextChannel, Message, Member, Role
+from ..exception import HTTPException, Forbidden, NotFound, InteractionResponded
+from ..event import RawMessageDeleteEvent
 
 logger = logging.getLogger(__name__)
 
@@ -205,7 +209,6 @@ class Client(DiscordClient):
         Führt die Einrichtung des Clients durch, einschließlich der Registrierung von Befehlen und der Synchronisierung globaler Befehle.
         """
         await self.services.setup()
-
         
         await self.clear_commands()
 

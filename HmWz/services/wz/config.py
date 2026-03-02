@@ -1,11 +1,8 @@
-from dataclasses import dataclass
+from __future__ import annotations
 import logging
-from discord import Guild
-from typing import Optional
-
 from ..database import Database
 from ..base import Base
-from ...types import id
+from ...types import Id, Optional, Guild, dataclass
 
 class WzConfig(Base):
     """
@@ -20,21 +17,28 @@ class WzConfig(Base):
     @dataclass(frozen=True)
     class Data:
         guild: Guild
-        channel_id: Optional[id]
+        channel_id: Optional[Id]
         score_mod_lvl: bool
         matchmaker: bool
 
     type Record = Optional[Data]
 
+    @dataclass(frozen=True)
+    class TableCols:
+        Guild: str = "Guild"
+        Channel: str = "ChannelID"
+        ScoreModLvl: str = "ScoreModLvl"
+        Matchmaker: str = "Matchmaker"
+
     @property
     def table(self):
         return  f"""
         CREATE TABLE IF NOT EXISTS {self.table_name} (
-            Guild INTEGER PRIMARY KEY,
-            ChannelID INTEGER,
-            ScoreModLvl BOOLEAN DEFAULT 0,
-            Matchmaker BOOLEAN DEFAULT 0,
-            FOREIGN KEY (Guild) REFERENCES Servers(Guild)
+            {self.TableCols.Guild} INTEGER PRIMARY KEY,
+            {self.TableCols.Channel} INTEGER,
+            {self.TableCols.ScoreModLvl} BOOLEAN DEFAULT 0,
+            {self.TableCols.Matchmaker} BOOLEAN DEFAULT 0,
+            FOREIGN KEY ({self.TableCols.Guild}) REFERENCES Servers(Guild)
         ) WITHOUT ROWID"""
 
     async def get(self, *, guild: Guild) -> Record:
@@ -46,16 +50,17 @@ class WzConfig(Base):
         :return: Ein Record-Objekt mit den Konfigurationsdaten oder None, wenn keine Konfiguration gefunden wurde oder ein Fehler aufgetreten ist.
         :rtype: Optional[WzConfig.Data]
         """
+
         try:
             query = f"""
             SELECT 
-                ChannelID, 
-                ScoreModLvl, 
-                Matchmaker 
+                {self.TableCols.Channel}, 
+                {self.TableCols.ScoreModLvl}, 
+                {self.TableCols.Matchmaker} 
             FROM 
                 {self.table_name} 
             WHERE 
-                Guild = ?
+                {self.TableCols.Guild} = ?
             """
             row = await self.database.fetch_one(query, (guild.id,))
             
@@ -65,15 +70,15 @@ class WzConfig(Base):
             self.logger.info(f"{self.log_prefix(guild)} WZ config retrieved.")
             return self.Data(
                 guild=guild,
-                channel_id=row["ChannelID"],
-                score_mod_lvl=bool(row["ScoreModLvl"]),
-                matchmaker=bool(row["Matchmaker"])
+                channel_id=row[self.TableCols.Channel],
+                score_mod_lvl=bool(row[self.TableCols.ScoreModLvl]),
+                matchmaker=bool(row[self.TableCols.Matchmaker])
             )
         except Exception as e:
             self.logger.exception(f"{self.log_prefix(guild)} Failed to get WZ config: {e}")
             return None
 
-    async def upsert(self, *, guild: Guild, channel_id: Optional[id] = None, score_mod_lvl: Optional[bool] = None, matchmaker: Optional[bool] = None) -> bool:
+    async def upsert(self, *, guild: Guild, channel_id: Optional[Id] = None, score_mod_lvl: Optional[bool] = None, matchmaker: Optional[bool] = None) -> bool:
         """
         Fügt eine neue WZ-Konfiguration für einen Server (Guild) hinzu oder aktualisiert eine vorhandene Konfiguration in der Datenbank.
 
@@ -93,26 +98,26 @@ class WzConfig(Base):
             vals = []
             
             if channel_id is not None:
-                cols.append("ChannelID")
+                cols.append(self.TableCols.Channel)
                 vals.append(channel_id)
             if score_mod_lvl is not None:
-                cols.append("ScoreModLvl")
+                cols.append(self.TableCols.ScoreModLvl)
                 vals.append(int(score_mod_lvl))
             if matchmaker is not None:
-                cols.append("Matchmaker")
+                cols.append(self.TableCols.Matchmaker)
                 vals.append(int(matchmaker))
 
             if not cols:
                 return False
 
-            columns = "Guild, " + ", ".join(cols)
+            columns = f"{self.TableCols.Guild}, " + ", ".join(cols)
             placeholders = ", ".join(["?"] * (1 + len(cols)))
             update_clause = ", ".join([f"{c}=excluded.{c}" for c in cols])
             
             query = f"""
                 INSERT INTO {self.table_name} ({columns}) 
                 VALUES ({placeholders}) 
-                ON CONFLICT(Guild) DO UPDATE SET {update_clause}
+                ON CONFLICT({self.TableCols.Guild}) DO UPDATE SET {update_clause}
             """
             params = [guild.id] + vals
             
@@ -133,7 +138,7 @@ class WzConfig(Base):
         :rtype: bool
         """
         try:
-            query = f"DELETE FROM {self.table_name} WHERE Guild = ?"
+            query = f"DELETE FROM {self.table_name} WHERE {self.TableCols.Guild} = ?"
             await self.database.execute(query, (guild.id,))
             self.logger.info(f"{self.log_prefix(guild)} WZ config removed.")
             return True

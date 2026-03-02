@@ -89,6 +89,7 @@ class Manager:
         for instance in instances:
             try:
                 await instance.sync()
+                await instance.delete()
                 await instance.ensure()
                 logger.debug(f"Overview instance {instance.__class__.__name__} for guild {guild.id} synced successfully.")
             except Exception as e:
