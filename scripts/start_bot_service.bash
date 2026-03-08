@@ -4,8 +4,8 @@
 echo "Starting HsBot service..."
 
 sudo systemctl daemon-reload || { echo "daemon-reload failed"; exit 1;}
-sudo systemctl enable discordbot.service || { echo "enable discordbot.service failed"; exit 1;}
-sudo systemctl restart discordbot.service || { echo "restart discordbot.service failed"; exit 1;} 
+sudo systemctl enable discordbot.service || { echo "enable discordbot.service failed"; exit 1; }
+sudo systemctl restart discordbot.service || { echo "restart discordbot.service failed"; exit 1; } 
 
 if [ $? -eq 0 ]; then
     echo "HsBot service started successfully"

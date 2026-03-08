@@ -3,8 +3,8 @@
 
 echo "Stopping HsBot service..."
 
-sudo systemctl stop discordbot.service || {echo "stop discordbot.service failed"; exit 1;}
-sudo systemctl disable discordbot.service || {echo "disable discordbot.service failed"; exit 1;}
+sudo systemctl stop discordbot.service || { echo "stop discordbot.service failed"; exit 1; }
+sudo systemctl disable discordbot.service || { echo "disable discordbot.service failed"; exit 1; }
 
 if [ $? -eq 0 ]; then
     echo "HsBot service stopped successfully"
