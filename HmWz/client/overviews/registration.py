@@ -487,7 +487,7 @@ class RegistrationOverview(BasicOverview):
                     if member is not None and isinstance(member, Member):
                         role = next((r for r in self.configuration.roles if r.role.id == record.role), None)
                         if role is not None:
-                            self.data.members.append(RegistrationMember(member=member, role=role))
+                            self.data.members.append(RegistrationMember(member=member, role=role, score=role.score, timestamp=record.timestamp))
     
                 if self.records.has_registration_messages:
                     for record in self.records.registrations_messages:
@@ -512,6 +512,13 @@ class RegistrationOverview(BasicOverview):
             self.stats.total = 0
             self.stats.permanent = 0
             self.stats.non_permanent = 0
+
+            if self.records.has_registration_messages:
+                for record in self.records.registrations_messages:
+                    message = await fetch_message(self.configuration.channel, record.message)
+                    if message is not None and isinstance(message, Message):
+                        self.data.messages.append(message)
+
             await self.create_registrations_list()
             await self.create_registrations_embeds()
             return True    
@@ -573,10 +580,7 @@ class RegistrationOverview(BasicOverview):
 
             if self.configuration.is_valid:
                 self.create_registration_message()
-                
-                # Bei sync_data: Messages aktualisieren
-                if sync_data or sync_discord or startup:
-                    await self.update_registrations()
+
             else:
                 logger.info(f"{self.log_context} Registration overview is not properly configured. Sync will be skipped.")
                 return False
@@ -658,7 +662,7 @@ class RegistrationOverview(BasicOverview):
                 return False
       
             await self.configuration.message.edit(embed=self.configuration.embed, view=self.configuration.view)
-
+            await self.update_registrations()
             logger.info(f"{self.log_context} Registration overview updated successfully.")
             return True
         except Forbidden:

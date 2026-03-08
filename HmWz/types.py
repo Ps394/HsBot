@@ -46,3 +46,5 @@ class RegistrationMember:
     """
     member: Member = None
     role: RegistrationRole = None
+    score: int = None
+    timestamp: str = None
