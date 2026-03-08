@@ -232,10 +232,15 @@ class RegistrationOverview(BasicOverview):
                 return True
             self.data.list = []
             i = 0
+            self.data.members.sort(key=lambda m: (not m.role.permanent, m.role.role.name.lower(), m.member.display_name.lower()))
+            last_role : str = ""
             for reg_member in self.data.members:
                 i += 1
-                role_name = reg_member.role.role.name if reg_member.role else "-"
-                self.data.list.append(f"{i}. {reg_member.member.display_name} [{role_name}]")
+                reg_role = f"{reg_member.role.role.name} {Emojis.PERMA_REGISTRATION.value if reg_member.role.permanent else Emojis.NORMAL_REGISTRATION.value}"
+                if last_role != reg_role:
+                    last_role = reg_role
+                    self.data.list.append(f"**{last_role}**")
+                self.data.list.append(f"{i}. {reg_member.member.display_name}")
             return True
         except Exception as e:
             logger.exception(f"{self.log_context} Failed to create registrations list: {e}")
@@ -360,7 +365,9 @@ class RegistrationOverview(BasicOverview):
                     await interaction.user.remove_roles(role, reason="WZ Deregistration")
                     action = "deregister"
                 elif registration and registration.role != role.id:
-                    await interaction.user.remove_roles(registration.role, reason="WZ Registration Update") 
+                    old_role = interaction.guild.get_role(registration.role)
+                    if old_role:
+                        await interaction.user.remove_roles(old_role, reason="WZ Registration Update")
                     await self.services.wz.registrations.add(guild=self.guild, member=interaction.user.id, role=role.id)
                     await interaction.user.add_roles(role, reason="WZ Registration")
                     message = f"{Emojis.REREGISTER.value} Aktualisierung auf {role.name} erfolgreich."
