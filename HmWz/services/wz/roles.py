@@ -57,10 +57,6 @@ class WzRoles(Base):
     type Records = Optional[Tuple[Data, ...]]
     """Repräsentiert eine Sammlung von WZ-Registrierungsrollen, die in einem Guild registriert sind. Kann None sein, wenn keine Rollen gefunden wurden."""
 
-    def __init__(self, database: Database):
-        self.database = database
-        self.logger = logging.getLogger(__name__)
-
     async def count(self, *, guild: Guild, permanent: Optional[bool] = None, roles: Optional[Ids] = None) -> int:
         """
         Zählt die Anzahl der WZ-Registrierungsrollen in einem Guild, optional gefiltert nach Permanenz oder einer Liste von Rollen-IDs.

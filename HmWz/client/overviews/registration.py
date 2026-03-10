@@ -1,79 +1,36 @@
 from __future__ import annotations
 import logging
 
-from discord import Embed, Interaction, ButtonStyle
 from discord.ui import View, Button
 from .registry import register
 from .basic_overview import BasicOverview
 from dataclasses import dataclass, field
 from typing import Optional, List, Tuple
-from enum import Enum
+from discord import (
+    Guild,
+    TextChannel,
+    Message,
+    Member,
+    Role,
+    Embed, 
+    Interaction, 
+    ButtonStyle
+)
 
-from ...services import wz, Services
 from ...emojis import Emojis
-from ...types import Guild, TextChannel, Message, Member, Role, RegistrationRole, RegistrationMember
+from ...event import RawMessageDeleteEvent
+from ...services import wz, Services
+from ...types import RegistrationRole, RegistrationMember
 from ...utils import fetch_channel, fetch_message, fetch_member, fetch_role
 from ...exception import HTTPException, Forbidden, NotFound, InteractionResponded
-from ...event import RawMessageDeleteEvent
 
 logger = logging.getLogger(__name__)
 
 type ConfigurationRoles = List[RegistrationRole]
 type RegistrationMembers = List[RegistrationMember]
-
 type RegistrationEmbeds = List[Embed]
 type RegistrationList = List[str]
 type RegistrationMessages = List[Message]
-
-@dataclass()
-class State():
-    on_startup: bool = True
-    sync_from_discord: bool = False
-    sync_configuration: bool = False
-    sync_data: bool = False
-    
-    class Event(Enum):
-        STARTUP = 0x100
-        CHANGED_DISCORD = 0x200
-        CHANGED_CONFIGURATION = 0x300
-        CHANGED_REGISTRATIONS = 0x400
-    
-    def check(self, event: Event) -> bool:
-        if event == self.Event.STARTUP and self.on_startup:
-            self.reset(self.Event.STARTUP)
-            return True
-        elif event == self.Event.CHANGED_DISCORD and self.sync_from_discord:
-            self.reset(self.Event.CHANGED_DISCORD)
-            return True
-        elif event == self.Event.CHANGED_CONFIGURATION and self.sync_configuration:
-            self.reset(self.Event.CHANGED_CONFIGURATION)
-            return True
-        elif event == self.Event.CHANGED_REGISTRATIONS and self.sync_data:
-            self.reset(self.Event.CHANGED_REGISTRATIONS)
-            return True
-        else:
-            return False  
-        
-    
-    def reset(self, event: Optional[Event] = None):
-        if event is None or event == self.Event.STARTUP:
-             self.on_startup = False
-             self.sync_from_discord = False
-             self.sync_configuration = False
-             self.sync_data = False
-        elif event == self.Event.CHANGED_DISCORD:
-            self.sync_from_discord = False
-        elif event == self.Event.CHANGED_CONFIGURATION:
-            self.sync_configuration = False
-        elif event == self.Event.CHANGED_REGISTRATIONS:
-            self.sync_data = False
-
-
-    def clear(self):
-        self.on_startup = False
-        self.sync_from_discord = False
-        self.sync_configuration = False
-        self.sync_data = False
 
 @dataclass(slots=True)
 class Records:
@@ -223,7 +180,6 @@ class RegistrationOverview(BasicOverview):
         self.configuration : Configuration = Configuration()
         self.data : Data = Data()
         self.stats : Stats = Stats()
-        self.state : State = State()
 
     async def create_registrations_list(self) -> bool:
         try:

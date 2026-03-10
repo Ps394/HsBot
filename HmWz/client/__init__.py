@@ -12,6 +12,7 @@ from HmWz.client.overviews.registration import RegistrationOverview
 from . import overviews
 from . import commands
 from .. import services
+from ..configuration import Monitoring
 from ..emojis import Emojis
 from ..types import Guild, TextChannel, Message, Member, Role
 from ..exception import HTTPException, Forbidden, NotFound, InteractionResponded
@@ -63,7 +64,7 @@ class Client(DiscordClient):
                     logger.exception(f"{guild.name} (ID: {guild.id}) - Error updating overviews: {e}")
             await asyncio.sleep(interval)
     
-    async def resource_monitor_loop(self, interval: int = 60):
+    async def resource_monitor_loop(self, interval: int = Monitoring.Interval.value):
         """
         Periodische Überwachung der Ressourcen (CPU, Speicher, Festplatte).
         
@@ -79,16 +80,28 @@ class Client(DiscordClient):
         
         while not self.is_closed():
             try:
+                mem_info = psutil.virtual_memory()
+                temp_info = psutil.sensors_temperatures() if hasattr(psutil, "sensors_temperatures") else None
+                storage_info = psutil.disk_usage('/')
+                cpu_info =  psutil.cpu_times_percent(interval=None)
+                process.memory_full_info()
                 cpu_percent = process.cpu_percent(interval=1)
-                memory_info = process.memory_info()
-                storage = psutil.disk_usage('/')
-                memory_mb = memory_info.rss / 1024 / 1024
+
+                if temp_info:
+                    for name, entries in temp_info.items():
+                        for entry in entries:
+                            if entry.current >= Monitoring.TEMPERATURE_THRESHOLD.value:
+                                logger.warning(f"High temperature detected: {entry.label or name} at {entry.current:.1f}°C")
                 
-                logger.info(
-                    f"Resource Usage - CPU: {cpu_percent:.1f}%, "
-                    f"Memory: {memory_mb:.1f} MB, "
-                    f"Disk: {storage.percent}%"   
-                )
+                if cpu_info.user > Monitoring.CPU_THRESHOLD.value or cpu_info.system >Monitoring.CPU_THRESHOLD.value:
+                    logger.warning(f"High CPU usage detected: {cpu_percent:.1f}%")
+
+                if mem_info.percent > Monitoring.MEMORY_THRESHOLD.value:
+                    logger.warning(f"High RAM usage detected: {mem_info.percent:.1f}% ({mem_info.used / 1024 / 1024:.1f} MB used of {mem_info.total / 1024 / 1024:.1f} MB)")
+
+                if storage_info.percent > Monitoring.DISK_THRESHOLD.value:
+                    logger.warning(f"High disk usage detected: {storage_info.percent:.1f}% ({storage_info.used / 1024 / 1024 / 1024:.1f} GB used of {storage_info.total / 1024 / 1024 / 1024:.1f} GB)")
+
             except Exception as e:
                 logger.exception(f"Error monitoring resources: {e}")
             
