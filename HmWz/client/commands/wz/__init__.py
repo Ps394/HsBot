@@ -1,8 +1,8 @@
-from discord.app_commands import Group, checks, command
+from discord.app_commands import Group, checks, command, locale_str
 from discord import Interaction
 from . import setup, registration
 from ..registry import register
-
+from ....i18n import CommandLocalizations, t
 __all__ = [
     "WzGroup"
 ]
@@ -12,7 +12,10 @@ class WzGroup(Group):
     def __init__(self, bot):
         super().__init__(
             name="wz", 
-            description="Alle Befehle rund um die WZ-Registrierung"
+            description=locale_str(
+                CommandLocalizations.get("en", {}).get("wz.group.description", "WZ Commands"),
+                key="wz.group.description"
+            )
         )
 
         self.bot = bot
@@ -20,18 +23,25 @@ class WzGroup(Group):
         self.add_command(setup.SetupGroup())
         self.add_command(registration.RegistrationGroup())
 
-
-    @command(name="about-bot", description="Informationen über den Bot und seine Funktionen")    
+    @command(
+        name="about-bot",
+        description=locale_str(
+            CommandLocalizations.get("en", {}).get("wz.about.description", "About the bot"),
+            key="wz.about.description"
+        )
+    )
     async def about_bot(self, interaction : Interaction, ephemeral: bool = True):
-        MESSAGES = """
-### {Botname}
-- Ich bin ein in Python geschriebener Discord-Bot, der speziell für die Verwaltung von WZ-Registrierungen entwickelt wurde.
-- Meine Aufgabe ist es Anmeldungen kompfortabel zu gestalten, indem ich automatisierte Prozesse, Übersichten und Ausdrücke bereitstelle.
-- Ich stehe unter der MIT-Lizenz, was bedeutet, dass du mich kostenlos nutzen, modifizieren und weiterverbreiten kannst, solange du die ursprünglichen Urheberrechtsvermerke und Lizenzhinweise beibehältst.
-- Meine Github-Seite ist öffentlich zugänglich, und ich lade alle ein, die interessiert sind, den Code zu überprüfen, Fehler zu melden oder sogar zum Projekt beizutragen.
-  - [HmWZ GitHub Repository](https://github.com/Ps394/HsBot)
-            """
-        await interaction.response.send_message(f"{MESSAGES.format(Botname=self.bot.user.name)}", ephemeral=ephemeral)
+        message = "\n".join(
+            [
+                t(interaction, "wz.about.title", bot_name=self.bot.user.name),
+                t(interaction, "wz.about.line1"),
+                t(interaction, "wz.about.line2"),
+                t(interaction, "wz.about.line3"),
+                t(interaction, "wz.about.line4"),
+                t(interaction, "wz.about.link")
+            ]
+        )
+        await interaction.response.send_message(message, ephemeral=ephemeral)
 
 
 

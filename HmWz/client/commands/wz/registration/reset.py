@@ -5,20 +5,27 @@ from .....emojis import Emojis
 from .....services import Services
 from ....overviews import Manager
 from ....overviews.registration import RegistrationOverview, Configuration, Data
+from .....i18n import CommandLocalizations, t
 
 logger = logging.getLogger(__name__)
 
 @app_commands.checks.has_permissions(manage_roles=True, manage_messages=True, manage_channels=True)
 @app_commands.default_permissions(manage_roles=True, manage_messages=True, manage_channels=True)
-@app_commands.command(name="reset", description="Registrierung zurücksetzen")
+@app_commands.command(
+    name="reset",
+    description=app_commands.locale_str(
+        CommandLocalizations.get("en", {}).get("wz.registration.reset.description", "-"),
+        key="wz.registration.reset.description",
+    ),
+)
+@app_commands.describe(
+    ephemeral=app_commands.locale_str(
+        CommandLocalizations.get("en", {}).get("ephemeral.description", "-"),
+        key="ephemeral.description",
+    )
+)
 @app_commands.checks.cooldown(1, 300, key=lambda i: (i.guild_id))
 async def reset(interaction: Interaction, ephemeral: bool = True):
-    MESSAGES = {
-        "SUCCESS": f"{Emojis.SUCCESS.value} Alle nicht permanenten Registrierungen wurden zurückgesetzt.",
-        "ERROR": f"{Emojis.ERROR.value} Beim Zurücksetzen der Registrierungen ist ein Fehler aufgetreten.",
-        "NOT_CONFIGURED": f"{Emojis.WARNING.value} Die WZ-Registrierung ist nicht konfiguriert. Bitte richte zuerst einen Registrierungskanal und Rollen ein.",
-        "NO_REGISTRATIONS": f"{Emojis.WARNING.value} Es sind keine Registrierungen zum Entfernen vorhanden. Permaente Rollen werden nicht entfernt."
-    }
     LOG_CONTEXT = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Registration Reset : "
     LOGS = {
         "EXCEPTION": f"{LOG_CONTEXT}",
@@ -37,11 +44,11 @@ async def reset(interaction: Interaction, ephemeral: bool = True):
             raise TypeError(LOGS["NO_SERVICES_OR_OVERVIEW"])
         
         if not configuration.is_valid:
-            await interaction.followup.send(MESSAGES["NOT_CONFIGURED"], ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.registration.error.not_configured"), ephemeral=True)
             raise ValueError(LOGS["NOT_CONFIGURED"])
 
         if len(data.members) == 0:
-            await interaction.followup.send(MESSAGES["NO_REGISTRATIONS"], ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.registration.csv.no_registrations"), ephemeral=True)
             logger.warning(LOGS["NO_REGISTRATIONS"])
             return
         
@@ -58,10 +65,10 @@ async def reset(interaction: Interaction, ephemeral: bool = True):
             await overview_instance.clean()
             await overview_instance.sync(sync_config=True, sync_data=True)
             await overview_instance.ensure()
-            await interaction.followup.send(MESSAGES["SUCCESS"], ephemeral=ephemeral)
+            await interaction.followup.send(t(interaction, "wz.registration.reset.success"), ephemeral=ephemeral)
         else:
-            await interaction.followup.send(MESSAGES["ERROR"], ephemeral=ephemeral)
+            await interaction.followup.send(t(interaction, "wz.registration.reset.error"), ephemeral=ephemeral)
     except (ValueError, HTTPException, Forbidden, NotFound, InteractionResponded, Exception) as e:
-        await interaction.followup.send(MESSAGES["ERROR"], ephemeral=ephemeral)
+        await interaction.followup.send(t(interaction, "wz.registration.reset.error"), ephemeral=ephemeral)
         logger.exception(f"{LOGS['EXCEPTION']} {e}")
         return

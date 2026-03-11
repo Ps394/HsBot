@@ -6,21 +6,30 @@ from ......emojis import Emojis
 from ......services import Services
 from .....overviews import Manager
 
-logger = logging.getLogger(__name__)
+from ......i18n import CommandLocalizations, t
+from ...... import configuration
 
-MAX_ROLES = 4
+logger = logging.getLogger(__name__)
 
 @checks.has_permissions(manage_roles=True, manage_messages=True, manage_channels=True)
 @app_commands.default_permissions(manage_roles=True, manage_messages=True, manage_channels=True)
-@app_commands.command(name="role-add", description="Anmeldungsrolle hinzufügen (maximal 4 Rollen möglich)")
-@app_commands.describe(role="Registrierungsrolle", permanent="Permanent machen (optional, Standard: false)")
+@app_commands.command(name="role-add",     description=app_commands.locale_str(
+        CommandLocalizations.get("en", {}).get("wz.setup.roles.add.description", "-"),
+        key="wz.setup.roles.add.description",
+    ),
+)
+@app_commands.describe(
+    role=app_commands.locale_str(
+        CommandLocalizations.get("en", {}).get("wz.setup.roles.add.role.description", "-"),
+        key="wz.setup.roles.add.role.description",
+    ),
+    permanent=app_commands.locale_str(
+        CommandLocalizations.get("en", {}).get("wz.setup.roles.add.permanent.description", "-"),
+        key="wz.setup.roles.add.permanent.description",
+    ),
+)
 async def add(interaction: Interaction, role: Role, permanent: Optional[bool] = False):
-    MAX_ROLES = 4
-    MESSAGES = {
-        "ERROR": f"{Emojis.ERROR.value} Fehler beim Hinzufügen der Rolle zur WZ-Registrierung.",
-        "MAX_ROLES": f"{Emojis.WARNING.value} Es können maximal {MAX_ROLES} Rollen für die WZ-Registrierung festgelegt werden.",
-        "SUCCESS": f"{Emojis.SUCCESS.value} Rolle {{role_name}} wurde zur WZ-Registrierung hinzugefügt."
-    }
+    MAX_ROLES = configuration.WzRegistration.MAX_REGISTRATION_ROLES.value
     LOG_CONTEXT = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Setup Role Add : "
     LOGS = {
         "EXCEPTION": f"{LOG_CONTEXT}",
@@ -38,23 +47,23 @@ async def add(interaction: Interaction, role: Role, permanent: Optional[bool] = 
             raise TypeError(LOGS["NO_SERVICES_OR_OVERVIEW"])
         
         if role >= interaction.guild.me.top_role:
-            await interaction.followup.send(f"{Emojis.ERROR} Die angegebene Rolle ist höher als die Bot-Rolle.", ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.setup.roles.add.error.role_hierarchy"), ephemeral=True)
             logger.error(LOGS["ROLE_HIERARCHY"])
             return
 
         if await services.wz.roles.count(guild=interaction.guild) >= MAX_ROLES:
-            await interaction.followup.send(MESSAGES["MAX_ROLES"], ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.setup.roles.add.max_roles", max_roles=MAX_ROLES), ephemeral=True)
             logger.warning(LOGS["MAX_ROLES"])
             return
  
         if await services.wz.roles.add(guild=interaction.guild, role=role.id, permanent=permanent):
             await overview_manager.sync(guild=interaction.guild, sync_config=True, sync_discord=True)
             await overview_manager.ensure(guild=interaction.guild)
-            await interaction.followup.send(MESSAGES["SUCCESS"].format(role_name=role.name), ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.setup.roles.add.success", role_name=role.name), ephemeral=True)
             logger.debug(LOGS["ROLE_ADDED"])
         else:
-            await interaction.followup.send(MESSAGES["ERROR"], ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.setup.roles.add.error"), ephemeral=True)
             logger.error(LOGS["ROLE_ADD_FAILED"])
     except (ValueError, Exception, HTTPException, Forbidden, NotFound) as e:
-        await interaction.followup.send(MESSAGES["ERROR"], ephemeral=True)
+        await interaction.followup.send(t(interaction, "wz.setup.roles.add.error"), ephemeral=True)
         logger.exception(f"{LOGS['EXCEPTION']} {e}")

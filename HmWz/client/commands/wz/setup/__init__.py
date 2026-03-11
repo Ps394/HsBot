@@ -1,6 +1,7 @@
-from discord.app_commands import Group, checks, default_permissions
+from discord.app_commands import Group, checks, default_permissions, locale_str
 
 from . import configure, message, roles
+from .....i18n import CommandLocalizations
 
 __all__ = ["SetupGroup"]
 
@@ -10,7 +11,10 @@ class SetupGroup(Group):
     def __init__(self):
         super().__init__(
             name="setup",
-            description="Setup-Befehle für die WZ-Registrierung"
+            description=locale_str(
+                CommandLocalizations.get("en", {}).get("wz.setup.group.description", "Setup Commands"),
+                key="wz.setup.group.description"
+            )
         )
         
         self.add_command(configure.configure)

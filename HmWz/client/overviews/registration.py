@@ -23,6 +23,7 @@ from ...services import wz, Services
 from ...types import RegistrationRole, RegistrationMember
 from ...utils import fetch_channel, fetch_message, fetch_member, fetch_role
 from ...exception import HTTPException, Forbidden, NotFound, InteractionResponded
+from ...i18n import t
 
 logger = logging.getLogger(__name__)
 
@@ -317,7 +318,7 @@ class RegistrationOverview(BasicOverview):
                 message = ""
                 if registration and registration.role == role.id:
                     await self.services.wz.registrations.remove(guild=self.guild, member=interaction.user.id)
-                    message = f"{Emojis.UNREGISTER.value} Abmeldung von {role.name} erfolgreich."
+                    message = t(interaction, "wz.overview.registration.remove_registration", role_name=role.name)
                     await interaction.user.remove_roles(role, reason="WZ Deregistration")
                     action = "deregister"
                 elif registration and registration.role != role.id:
@@ -326,12 +327,12 @@ class RegistrationOverview(BasicOverview):
                         await interaction.user.remove_roles(old_role, reason="WZ Registration Update")
                     await self.services.wz.registrations.add(guild=self.guild, member=interaction.user.id, role=role.id)
                     await interaction.user.add_roles(role, reason="WZ Registration")
-                    message = f"{Emojis.REREGISTER.value} Aktualisierung auf {role.name} erfolgreich."
+                    message = t(interaction, "wz.overview.registration.update_registration", role_name=role.name)
                     action = "update"
                 else:       
                     await self.services.wz.registrations.add(guild=self.guild, member=interaction.user.id, role=role.id)
                     await interaction.user.add_roles(role, reason="WZ Registration")
-                    message = f"{Emojis.REGISTER.value} Anmeldung mit {role.name} erfolgreich."
+                    message = t(interaction, "wz.overview.registration.new_registration", role_name=role.name)
                     action = "register"
 
                 await interaction.followup.send(message, ephemeral=True)
@@ -340,7 +341,7 @@ class RegistrationOverview(BasicOverview):
                 await self.sleep(self.WAIT_INTERVAL)
                 logger.debug(f"{self.log_context} {interaction.user} registration action({action}) for role {role.id}.")
             except (HTTPException, Forbidden, NotFound, InteractionResponded, Exception) as e:
-                await interaction.followup.send(f"{Emojis.ERROR.value} Fehler bei der Registrierung.", ephemeral=True)
+                await interaction.followup.send(t(interaction, "wz.overview.registration.error_registration"), ephemeral=True)
                 logger.exception(f"{self.log_context} {interaction.user} failed to register for role {role.name}: {e}")
 
     def gen_view(self)->View:

@@ -7,10 +7,12 @@ class Monitoring(Enum):
     DISK_THRESHOLD = 90.0 
     TEMPERATURE_THRESHOLD = 80.0 
 
-
-class Bot(Enum):
+class WzRegistration(Enum):
     MAX_REGISTRATION_ROLES = 4
     MIN_REGISTRATION_ROLES = 1
+
+class Bot(Enum):
+    pass
 
 
 

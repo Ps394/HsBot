@@ -12,6 +12,7 @@ from HmWz.client.overviews.registration import RegistrationOverview
 from . import overviews
 from . import commands
 from .. import services
+from ..i18n import CommandTranslator, t
 from ..configuration import Monitoring
 from ..emojis import Emojis
 from ..types import Guild, TextChannel, Message, Member, Role
@@ -224,6 +225,8 @@ class Client(DiscordClient):
         Führt die Einrichtung des Clients durch, einschließlich der Registrierung von Befehlen und der Synchronisierung globaler Befehle.
         """
         await self.services.setup()
+
+        await self.tree.set_translator(CommandTranslator())
         
         await self.clear_commands()
 
@@ -417,17 +420,17 @@ class Client(DiscordClient):
         send = interaction.followup.send if interaction.response.is_done() else interaction.response.send_message
         try:
             if isinstance(error, app_commands.MissingPermissions):
-                message = f"{Emojis.ERROR.value} Du hast nicht die erforderlichen Berechtigungen, um diesen Befehl auszuführen."
+                message = t(interaction, "command.error.permissions")
                 logger.warning(f"{log_context} - User missing permissions: {error}")
             elif isinstance(error, app_commands.BotMissingPermissions):
-                message = f"{Emojis.ERROR.value} Mir fehlen die erforderlichen Berechtigungen, um diesen Befehl auszuführen."
+                message = t(interaction, "command.error.bot_permissions")
                 logger.error(f"{log_context} - Bot missing permissions: {error}")
             elif isinstance(error, app_commands.CommandOnCooldown):
-                message = f"{Emojis.ERROR.value} Warte {error.retry_after:.1f} Sekunden, bevor du diesen Befehl erneut verwenden kannst."
+                message = t(interaction, "command.error.cooldown").format(retry_after=error.retry_after)
                 logger.info(f"{log_context} - Command on cooldown: {error}")
             
             else:
-                message = f"{Emojis.ERROR.value} Ein unerwarteter Fehler ist aufgetreten: {error}"
+                message = t(interaction, "command.error.unexpected").format(error=error)
                 logger.exception(f"{log_context} - Unexpected error: {error}")
             await send(message, ephemeral=True)
         except Exception as e:

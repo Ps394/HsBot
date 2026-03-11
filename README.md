@@ -18,6 +18,15 @@ Der Bot nutzt moderne Discord-APIs (discord.py), speichert alle relevanten Daten
 
 ![Bot in Aktion](Assets/example.png)
 
+**Was als nächstes?**
+1. Optimierung der Api Anfragen
+2. Sicherung und Wiederherstellung der Guild Infos auf Discord?
+3. Integration Mod Lvl
+3.1. Score System Wz Mod
+3.2. Google Sheets ???
+3.3. Commands Mod Lvl & Stats (wz begzogen)
+
+
 ## Commands – Übersicht & Details
 
 ### Gruppe: WZ
@@ -87,7 +96,7 @@ Im Projekt befinden sich die Installationsskripte `install.bash` (Linux/macOS) u
 Wichtige Hinweise:
 - Verwende eine virtuelle Umgebung (`venv`), um Projektabhängigkeiten isoliert zu halten.
 - Speichere Bot-Tokens niemals in Versionskontrolle (z. B. Git).
-- Annahme: Die Startdatei des Bots ist `Bot.py`.
+- Annahme: Die Startdatei des Bots ist `bot.py`.
 
 1) Python installieren
 - Windows: Installer von https://www.python.org/downloads herunterladen und während der Installation **"Add Python to PATH"** aktivieren. Prüfen: `python --version` oder `py -3 --version`.

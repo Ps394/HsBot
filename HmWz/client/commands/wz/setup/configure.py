@@ -6,20 +6,30 @@ from discord.app_commands import checks
 from .....emojis import Emojis
 from .....services import Services
 from ....overviews import Manager
+from .....i18n import CommandLocalizations, t
 
 logger = logging.getLogger(__name__)        
 
 @checks.has_permissions(manage_roles=True, manage_messages=True, manage_channels=True)
 @app_commands.default_permissions(manage_roles=True, manage_messages=True, manage_channels=True)
-@app_commands.command(name="configure", description="Einrichten der WZ-Registrierung für diesen Server")
-@app_commands.describe(channel="Registrierungskanal", role="Registrierungsrolle (optional, sofern mindestens eine Rolle bereits konfiguriert ist)")
+@app_commands.command(
+    name="configure",
+    description=app_commands.locale_str(
+        CommandLocalizations.get("en", {}).get("wz.setup.configure.description", "-"),
+        key="wz.setup.configure.description",
+    ),
+)
+@app_commands.describe(
+    channel=app_commands.locale_str(
+        CommandLocalizations.get("en", {}).get("wz.setup.configure.channel.description", "-"),
+        key="wz.setup.configure.channel.description",
+    ),
+    role=app_commands.locale_str(
+        CommandLocalizations.get("en", {}).get("wz.setup.configure.role.description", "-"),
+        key="wz.setup.configure.role.description",
+    ),
+)
 async def configure(interaction: Interaction, channel: TextChannel, role: Optional[Role]=None):
-    MESSAGES = {
-        "SUCCESS": f"{Emojis.SUCCESS.value} WZ-Registrierung wurde erfolgreich eingerichtet. \nKanal: {{channel_name}}",
-        "ERROR": f"{Emojis.ERROR.value} Fehler beim Einrichten der WZ-Registrierung.",
-        "ERROR_ROLE_HIERARCHY": f"{Emojis.ERROR.value} Die angegebene Rolle ist höher als die Bot-Rolle. Bitte wähle eine andere Rolle oder ändere die Bot-Rollenhierarchie.",
-        "ERROR_NO_CONFIGURED_ROLE": f"{Emojis.ERROR.value} Es muss mindestens eine Rolle für die WZ-Registrierung festgelegt sein, wenn kein Kanal konfiguriert ist."
-    }
     LOG_CONTEXT = f"{interaction.guild.name}({interaction.guild.id}) - {interaction.user} - WZ Setup Registration Configure : "
     LOGS = {
         "EXCEPTION": f"{LOG_CONTEXT}",
@@ -40,12 +50,12 @@ async def configure(interaction: Interaction, channel: TextChannel, role: Option
 
         if role is None and await services.wz.roles.count(guild=interaction.guild) == 0:
             logger.error(LOGS["NO_CONFIGURED_ROLE"])
-            await interaction.followup.send(MESSAGES["ERROR_NO_CONFIGURED_ROLE"], ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.setup.configure.error_no_configured_role"), ephemeral=True)
             return
         
         if role:
             if role >= interaction.guild.me.top_role:
-                await interaction.followup.send(MESSAGES["ERROR_ROLE_HIERARCHY"], ephemeral=True)
+                await interaction.followup.send(t(interaction, "wz.setup.configure.error_role_hierarchy"), ephemeral=True)
                 logger.error(LOGS["ROLE_HIERARCHY"])
                 return
             success_role = await services.wz.roles.add(guild=interaction.guild, role=role.id, permanent=False, score=1)
@@ -54,11 +64,11 @@ async def configure(interaction: Interaction, channel: TextChannel, role: Option
            
             await overview_manager.sync(guild=interaction.guild, sync_config=True, sync_discord=True)
             await overview_manager.ensure(guild=interaction.guild)
-            await interaction.followup.send(MESSAGES["SUCCESS"].format(channel_name=channel.name), ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.setup.configure.success", channel_name=channel.name), ephemeral=True)
         else:
-            await interaction.followup.send(MESSAGES["ERROR"], ephemeral=True)
+            await interaction.followup.send(t(interaction, "wz.setup.configure.error"), ephemeral=True)
     except (ValueError, RuntimeError, HTTPException, Forbidden, NotFound, Exception) as e:
-        await interaction.followup.send(MESSAGES["ERROR"], ephemeral=True)
+        await interaction.followup.send(t(interaction, "wz.setup.configure.error"), ephemeral=True)
         logger.exception(f"{LOGS['EXCEPTION']} {e}")
     
 
