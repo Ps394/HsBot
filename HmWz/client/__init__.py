@@ -5,7 +5,7 @@ import os
 import discord
 
 from typing import Optional
-from discord import Client as DiscordClient, Intents, app_commands, Interaction, AuditLogAction
+from discord import AutoShardedClient as DiscordClient, Intents, app_commands, Interaction, AuditLogAction
 
 from HmWz.client.overviews.registration import RegistrationOverview
 
