@@ -22,9 +22,9 @@ Der Bot nutzt moderne Discord-APIs (discord.py), speichert alle relevanten Daten
 1. Optimierung der Api Anfragen
 2. Sicherung und Wiederherstellung der Guild Infos auf Discord?
 3. Integration Mod Lvl
-3. 1. Score System Wz Mod
-3. 2. Google Sheets ???
-3. 3. Commands Mod Lvl & Stats (wz begzogen)
+	1. Score System Wz Mod
+	2. Google Sheets ???
+	3. Commands Mod Lvl & Stats (wz begzogen)
 
 
 ## Commands – Übersicht & Details
