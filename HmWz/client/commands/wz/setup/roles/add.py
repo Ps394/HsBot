@@ -2,7 +2,6 @@ import logging
 from typing import Optional
 from discord import app_commands, Interaction, Role, HTTPException, Forbidden, NotFound
 from discord.app_commands import checks
-from ......emojis import Emojis
 from ......services import Services
 from .....overviews import Manager
 

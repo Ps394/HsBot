@@ -1,4 +1,5 @@
 
+import asyncio
 import os
 import logging
 import aiosqlite
@@ -6,6 +7,10 @@ from contextlib import asynccontextmanager
 from typing import Tuple, Optional
 
 class Database:
+    _busy_timeout_ms = 5000
+    _write_retry_attempts = 5
+    _write_retry_delay = 0.2
+
     def __init__(self,*, folder: str = "data", filename: str = "data.db") -> None:
         """
         Initialisiert die Datenbankverbindung und erstellt den Ordner für die Datenbankdatei, falls dieser nicht existiert.
@@ -18,6 +23,7 @@ class Database:
         os.makedirs(folder, exist_ok=True)
         self.file = os.path.join(folder, filename)
         self.logger = logging.getLogger(__name__)
+        self._write_lock = asyncio.Lock()
 
     @asynccontextmanager
     async def connect(self):
@@ -30,7 +36,10 @@ class Database:
         """
         database = None
         try:
-            database = await aiosqlite.connect(self.file)
+            database = await aiosqlite.connect(
+                self.file,
+                timeout=self._busy_timeout_ms/1000)
+            await database.execute(f"PRAGMA busy_timeout = {self._busy_timeout_ms};")
             await database.execute("PRAGMA foreign_keys = ON;")
             await database.execute("PRAGMA journal_mode = WAL;")
             await database.execute("PRAGMA synchronous = NORMAL;")
@@ -43,7 +52,7 @@ class Database:
             if database:
                 await database.close()
 
-    async def execute(self, query: str, params: Tuple = ()) -> aiosqlite.Cursor:
+    async def execute(self, query: str, params: Tuple = ()) -> bool:
         """
         Führt eine SQL-Abfrage aus, die keine Ergebnisse zurückgibt (z.B. INSERT, UPDATE, DELETE).
         
@@ -51,14 +60,27 @@ class Database:
         :type query: str
         :param params: Die Parameter für die SQL-Abfrage. Standardmäßig ein leeres Tupel.
         :type params: Tuple
-        :return: Ein aiosqlite.Cursor-Objekt, das das Ergebnis der Abfrage enthält.
-        :rtype: aiosqlite.Cursor
+        :return: True, wenn die Abfrage erfolgreich ausgeführt wurde, False andernfalls.
+        :rtype: bool
         :raises Exception: Wenn ein Fehler bei der Ausführung der Abfrage auftritt, wird die Ausnahme protokolliert und erneut ausgelöst.
         """
-        async with self.connect() as connection:
-            await connection.execute(query, params)
-            await connection.commit()
-            
+        async with self._write_lock:
+            for attempt in range(self._write_retry_attempts+1):
+                try:
+                    async with self.connect() as connection:
+                        await connection.execute(query, params)
+                        await connection.commit()
+                        return True
+                except aiosqlite.OperationalError as e:
+                    msg = str(e).lower()
+                    is_locked = "database is locked" in msg or "database is busy" in msg
+                    if not is_locked or attempt == self._write_retry_attempts:
+                        self.logger.exception(f"Database write error: {e}")
+                        return False
+                    delay = self._write_retry_delay * (2 ** attempt)
+                    self.logger.warning(f"Database is locked, retrying in {delay:.2f} seconds (attempt {attempt+1}/{self._write_retry_attempts})")
+                    await asyncio.sleep(delay)
+
     async def fetch_all(self, query: str, params: Tuple = ()) -> Tuple[aiosqlite.Row, ...]:
         """
         Führt eine SQL-Abfrage aus, die mehrere Ergebnisse zurückgibt (z.B. SELECT) und gibt diese als Tupel von aiosqlite.Row-Objekten zurück.
